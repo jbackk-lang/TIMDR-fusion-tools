@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>fusion-tools - dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: #0f1420; color: #e6e9ef; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h2 { font-size: 14px; color: #9aa4b2; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; }
+  .sub { color: #9aa4b2; font-size: 13px; margin-bottom: 20px; }
+  .panel { background: #171d2b; border: 1px solid #262f42; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: #9aa4b2; margin-bottom: 4px; margin-top: 10px; }
+  input[type=number], input[type=text] { width: 110px; padding: 6px 8px; background: #0f1420; border: 1px solid #2b364d; color: #e6e9ef; border-radius: 6px; }
+  input[type=file] { color: #9aa4b2; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; }
+  button { padding: 9px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+  #go { background: #4f7cff; color: white; }
+  #go:disabled { background: #33405c; cursor: not-allowed; }
+  #cancel { background: #3a2530; color: #ff9aa8; display: none; }
+  #status { margin-top: 10px; font-size: 13px; color: #9aa4b2; min-height: 18px; }
+  #status.err { color: #ff8080; }
+  #hdf5-info { margin-top: 8px; font-size: 12px; color: #f0c674; display: none; }
+  .metrics { display: flex; gap: 24px; margin-top: 4px; flex-wrap: wrap; }
+  .metric { background: #0f1420; border: 1px solid #262f42; border-radius: 8px; padding: 10px 16px; }
+  .metric .label { font-size: 11px; color: #9aa4b2; text-transform: uppercase; letter-spacing: .04em; }
+  .metric .value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  canvas { max-height: 380px; }
+  a.src { color: #7ea2ff; }
+  #description { font-size: 13.5px; line-height: 1.6; color: #d6dbe4; }
+</style>
+</head>
+<body>
+  <h1>fusion-tools - dashboard</h1>
+  <div class="sub">TIMDR (redukcja) + &Lambda;-&tau;-&rho; (metryki) + Model J (punkty skr&#281;tu) &mdash; wgraj CSV lub HDF5 albo u&#380;yj przyk&#322;adowego sygna&#322;u.</div>
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label>Plik CSV lub HDF5 (opcjonalnie)</label>
+        <input type="file" id="file" accept=".csv,.h5,.hdf5">
+      </div>
+      <div>
+        <label>Dataset HDF5 (opcjonalnie)</label>
+        <input type="text" id="dataset" placeholder="np. signal">
+      </div>
+      <div>
+        <label>Okno TIMDR (window)</label>
+        <input type="number" id="window" value="64" min="1">
+      </div>
+      <div>
+        <label>Pr&oacute;g Model J (threshold)</label>
+        <input type="number" id="threshold" value="2.0" step="0.1" min="0">
+      </div>
+      <div>
+        <button id="go">Analizuj</button>
+        <button id="cancel">Anuluj</button>
+      </div>
+    </div>
+    <div id="status"></div>
+    <div id="hdf5-info"></div>
+  </div>
+
+  <div class="panel">
+    <div class="metrics">
+      <div class="metric"><div class="label">&Lambda; (zakres)</div><div class="value" id="m-lambda">-</div></div>
+      <div class="metric"><div class="label">&tau; (mean|x|)</div><div class="value" id="m-tau">-</div></div>
+      <div class="metric"><div class="label">&rho; (energia)</div><div class="value" id="m-rho">-</div></div>
+      <div class="metric"><div class="label">Punkty Model J</div><div class="value" id="m-points">-</div></div>
+      <div class="metric"><div class="label">Pr&oacute;bki -&gt; TIMDR</div><div class="value" id="m-reduced">-</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Sygna&#322;</h2>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="panel">
+    <h2>Dryf &Lambda;-&tau;-&rho; w kolejnych oknach (zamiast jednej &#347;redniej na ca&#322;y sygna&#322;)</h2>
+    <canvas id="driftChart"></canvas>
+  </div>
+
+  <div class="panel">
+    <h2>Opis wyniku</h2>
+    <div id="description">Uruchom analiz&#281;, &#380;eby zobaczy&#263; opis.</div>
+  </div>
+
+  <div class="sub">
+    Kod &#378;r&oacute;d&#322;owy: <a class="src" href="https://github.com/jbackk-lang/fusion-tools">jbackk-lang/fusion-tools</a>.
+    Przyk&#322;adowe sygna&#322;y s&#261; syntetyczne (patrz <code>data/example_metadata.json</code>) - to nie s&#261; prawdziwe dane z W7-X:
+    <a class="src" href="/data/w7x_mirnov_example.csv">CSV</a> &middot;
+    <a class="src" href="/data/w7x_mirnov_example.h5">HDF5</a> (pobierz i wgraj z powrotem, &#380;eby przetestowa&#263; wgrywanie HDF5).
+  </div>
+
+<script>
+let chart = null;
+let driftChart = null;
+let currentAbort = null;
+
+function resetGoButton() {
+  document.getElementById('go').disabled = false;
+  document.getElementById('cancel').style.display = 'none';
+  currentAbort = null;
+}
+
+function setStatus(msg, isErr) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = isErr ? 'err' : '';
+}
+
+function setHdf5Info(data) {
+  const el = document.getElementById('hdf5-info');
+  if (!data.hdf5_info) {
+    el.style.display = 'none';
+    return;
+  }
+  const info = data.hdf5_info;
+  let msg = `HDF5: sygnal="${info.signal_dataset}", czas=${info.time_dataset ? '"' + info.time_dataset + '"' : '(brak - uzyto indeksow probek)'}. Dostepne datasety: ${info.available_datasets.join(', ')}.`;
+  if (info.ambiguous) {
+    msg += ' Wybor byl niejednoznaczny (kilku kandydatow pasowalo) - jesli to zle, wpisz nazwe w pole "Dataset HDF5" i uruchom ponownie.';
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function renderChart(data) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+
+  const origPoints = data.time.map((t, i) => ({ x: t, y: data.signal[i] }));
+  const reducedPoints = data.reduced_x.map((t, i) => ({ x: t, y: data.reduced[i] }));
+  const jPoints = data.model_j_time.map((t, i) => ({ x: t, y: data.model_j_values[i] }));
+
+  chart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Sygnal (oryginal)', data: origPoints, showLine: true, pointRadius: 0, borderColor: '#3d4a63', borderWidth: 1 },
+        { label: 'TIMDR (zredukowany)', data: reducedPoints, showLine: true, pointRadius: 2, borderColor: '#4f7cff', backgroundColor: '#4f7cff', borderWidth: 2 },
+        { label: 'Model J (punkty skretu)', data: jPoints, showLine: false, pointRadius: 4, backgroundColor: '#ff5c7a', borderColor: '#ff5c7a' },
+      ],
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        x: { type: 'linear', title: { display: true, text: 'czas', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+        y: { title: { display: true, text: 'wartosc', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+      },
+      plugins: { legend: { labels: { color: '#e6e9ef' } } },
+    },
+  });
+
+  document.getElementById('m-lambda').textContent = data.latro.lambda.toFixed(4);
+  document.getElementById('m-tau').textContent = data.latro.tau.toFixed(4);
+  document.getElementById('m-rho').textContent = data.latro.rho.toFixed(4);
+  document.getElementById('m-points').textContent = data.model_j_points.length;
+  document.getElementById('m-reduced').textContent = `${data.n_samples} -> ${data.reduced.length}`;
+}
+
+function renderDriftChart(data) {
+  const ctx = document.getElementById('driftChart').getContext('2d');
+  if (driftChart) driftChart.destroy();
+
+  const lw = data.latro_windowed;
+  const labels = lw.x.map(t => t.toFixed(2));
+
+  driftChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Lambda (zakres w oknie)', data: lw.lambda, backgroundColor: '#4f7cff' },
+        { label: 'tau (mean|x| w oknie)', data: lw.tau, backgroundColor: '#7ee0c3' },
+        { label: 'rho (energia w oknie)', data: lw.rho, backgroundColor: '#ff9a5c' },
+      ],
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'czas (srodek okna)', color: '#9aa4b2' }, ticks: { color: '#9aa4b2', maxTicksLimit: 20 }, grid: { color: '#1f2738' } },
+        y: { title: { display: true, text: 'wartosc', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+      },
+      plugins: { legend: { labels: { color: '#e6e9ef' } } },
+    },
+  });
+}
+
+document.getElementById('cancel').addEventListener('click', () => {
+  if (currentAbort) currentAbort.abort();
+  resetGoButton();
+  setStatus('Anulowano.');
+});
+
+document.getElementById('go').addEventListener('click', async () => {
+  const fileInput = document.getElementById('file');
+  const datasetVal = document.getElementById('dataset').value.trim();
+  const windowVal = document.getElementById('window').value;
+  const thresholdVal = document.getElementById('threshold').value;
+
+  const form = new FormData();
+  if (fileInput.files.length > 0) {
+    form.append('file', fileInput.files[0]);
+  } else {
+    form.append('use_example', 'true');
+  }
+  if (datasetVal) form.append('dataset', datasetVal);
+  form.append('window', windowVal);
+  form.append('threshold', thresholdVal);
+
+  document.getElementById('go').disabled = true;
+  document.getElementById('cancel').style.display = 'inline-block';
+  currentAbort = new AbortController();
+  setStatus('Analizuje...');
+
+  try {
+    const resp = await fetch('/analyze', { method: 'POST', body: form, signal: currentAbort.signal });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || 'Blad serwera');
+    }
+    const data = await resp.json();
+    renderChart(data);
+    renderDriftChart(data);
+    setHdf5Info(data);
+    document.getElementById('description').textContent = data.description;
+    setStatus(`Gotowe: ${data.n_samples} probek, ${data.model_j_points.length} punktow skretu.`);
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      setStatus('Anulowano.');
+    } else {
+      setStatus('Blad: ' + e.message, true);
+    }
+  } finally {
+    resetGoButton();
+  }
+});
+</script>
+</body>
+</html>
