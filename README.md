@@ -2,190 +2,251 @@ https://jbackk-lang.github.io/
 
 # fusion-tools
 
-Narzędzia do analizy danych z fuzji jądrowej (W7-X, JET, DIII-D, EAST) 
-oparte na modelach GIA, TIMDR, Λ–τ–ρ oraz Modelu J.
+Narzędzia do analizy sygnałów z diagnostyki plazmy (W7-X, JET, DIII-D, EAST)
+oparte na TIMDR (redukcja informacji), Λ-τ-ρ (metryki strukturalne
+sygnału) oraz Model J (detekcja punktów skrętu).
 
-Projekt łączy klasyczne podejście do diagnostyki plazmy z 
-redukcją informacji, analizą strukturalną i detekcją punktów skrętu sygnału.
-
----
-
-## 🔥 Cele projektu
-
-- uproszczenie analizy sygnałów z diagnostyk plazmy,
-- wykrywanie anomalii i defektów w czasie rzeczywistym,
-- redukcja szumu i nadmiarowości danych,
-- ekstrakcja cech strukturalnych (Λ–τ–ρ),
-- detekcja punktów skrętu (Model J),
-- przygotowanie narzędzi kompatybilnych z open‑data W7‑X i innymi tokamakami/stellaratorami.
+> **Status repozytorium (sierpień 2026):** ten plik i kod zostały właśnie
+> uporządkowane po audycie, który znalazł kilka realnych błędów (patrz
+> sekcja "Historia poprawek" na końcu). Wszystko poniżej opisuje kod
+> **po** poprawkach.
 
 ---
 
-## 📁 Struktura
+## Cele projektu
 
+- redukcja szumu i nadmiarowości sygnałów z diagnostyk plazmy (TIMDR),
+- ekstrakcja prostych cech strukturalnych sygnału (Λ-τ-ρ),
+- detekcja punktów skrętu / gwałtownych zmian dynamiki (Model J),
+- wczytywanie danych w formatach używanych w fuzji (CSV, HDF5, MDSplus).
+
+To repozytorium **nie zawiera** prawdziwych danych z żadnego urządzenia
+fuzyjnego — przykładowy sygnał jest syntetyczny (patrz niżej).
+
+---
+
+## Struktura
+
+```
 fusion-tools/
-│
-├── data/                     # przykładowe sygnały i metadane
-│
-├── parsers/                 # wczytywanie danych (HDF5, MDSplus, CSV)
-│
-├── timdr/                   # filtr redukcji informacji TIMDR
-│
-├── latro/                   # analiza strukturalna Λ–τ–ρ
-│
-├── model_j/                 # detekcja punktów skrętu sygnału
-│
-└── demo/                    # notebook z przykładową analizą
+├── data/                       # przykładowy syntetyczny sygnał + metadane
+│   ├── w7x_mirnov_example.csv
+│   ├── w7x_mirnov_example.h5   # to samo co CSV, jako HDF5 (datasety "time"/"signal")
+│   └── example_metadata.json
+├── parsers/                    # wczytywanie danych: CSV, HDF5, MDSplus
+│   ├── csv_parser.py
+│   ├── hdf5_parser.py
+│   └── mdsplus_parser.py
+├── timdr/                      # redukcja informacji + wizualizacja
+│   ├── timdr_filter.py
+│   └── timdr_visualization.py
+├── latro/                      # metryki strukturalne Λ-τ-ρ
+│   ├── latro_core.py
+│   └── latro_features.py
+├── model_j/                    # detekcja punktów skrętu
+│   └── model_j_detector.py
+├── demo/                       # działające demo (skrypt + notebook)
+│   ├── run_demo.py
+│   └── fusion_demo.ipynb
+├── api.py                      # FastAPI backend dla dashboardu
+├── static/index.html           # dashboard (Chart.js, jeden plik)
+├── run.bat                     # launcher dla Windows (venv + pip + uvicorn)
+├── tests/                      # pytest
+└── requirements.txt
+```
+
+`parsers/`, `timdr/`, `latro/`, `model_j/` to "namespace packages" Pythona 3
+(bez `__init__.py`) — importy działają, jeśli uruchamiasz kod z katalogu
+głównego repo, np. `from timdr.timdr_filter import timdr`.
 
 ---
 
-## 🧩 Moduły
+## Instalacja
 
-### **parsers/**
-Obsługa formatów używanych w diagnostyce plazmy:
-- **HDF5** – dane z W7‑X, JET, DIII‑D  
-- **MDSplus** – standard w tokamakach  
-- **CSV** – szybkie testy i prototypy  
+```bash
+pip install -r requirements.txt
+```
 
-### **timdr/**
-TIMDR (Topological Information Minimal Defect Reduction):
-- redukcja szumu,
-- kompresja informacji,
-- detekcja defektów,
-- segmentacja sygnału.
-
-### **latro/**
-Λ–τ–ρ:
-- analiza struktury sygnału,
-- gradienty, skręty, rezonanse,
-- ekstrakcja cech do modeli ML/AI.
-
-### **model_j/**
-Model J:
-- detekcja punktów skrętu,
-- wykrywanie gwałtownych zmian dynamiki,
-- idealne do turbulencji i przejść fazowych.
-
-### **demo/**
-Przykładowy pipeline:
-- wczytanie sygnału,
-- TIMDR → redukcja,
-- Λ–τ–ρ → analiza,
-- Model J → punkty skrętu,
-- wizualizacje.
+`MDSplus` jest w `requirements.txt` zakomentowany — jest to opcjonalna,
+specjalistyczna zależność potrzebna wyłącznie do `parsers/mdsplus_parser.py`
+(połączenie z serwerem MDSplus tokamaka/stellaratora). Nie jest wymagana do
+pracy z CSV/HDF5 ani do żadnego innego modułu. Ten parser nie był testowany
+w tym repozytorium (brak dostępu do serwera MDSplus w środowisku
+deweloperskim).
 
 ---
-## 🔬 Offline Demo — TIMDR + Λ–τ–ρ + Model J
 
-Ten demo pokazuje działanie pipeline’u na lokalnym sygnale Mirnova (`w7x_mirnov_example.csv`).
+## Dashboard
 
-### Etapy analizy
+Prosty webowy dashboard (jeden plik HTML + Chart.js z CDN, bez build-stepu)
+nad tym samym pipeline'em, z wgrywaniem własnego pliku (CSV **lub HDF5**)
+albo przykładowego sygnału.
 
-1. **TIMDR (Filter)** – redukcja szumu poprzez różnicę kolejnych próbek.  
-2. **Λ–τ–ρ (Metryki)** – obliczenie trzech parametrów charakteryzujących sygnał:  
-    - Λ – amplituda zakresu,  
-    - τ – średnia wartość bezwzględna,  
-    - ρ – energia sygnału.  
-3. **Model J (Detekcja)** – wykrywanie lokalnych maksimów w sygnale magnetycznym.
+**Windows:** dwuklik na `run.bat` — tworzy `.venv`, instaluje zależności,
+startuje serwer i otwiera przeglądarkę.
 
-![Wykres sygnału](https://raw.githubusercontent.com/jbackk-lang/fusion-tools/main/wykrasSygnal.png)
+**Ręcznie (dowolny system):**
 
-Wykres pokazuje sygnał Mirnova z zaznaczonymi punktami Modelu J (czerwone markery).
+```bash
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
 
-Z przykladowego testu
-1. Wczesne wykrywanie anomalii
-Czerwone punkty = punkty skrętu energii.
-W plazmie to odpowiada:
-– początkom wybuchów ELM,
-– początkom sawtooth crash,
-– początkom turbulencji.
+- dashboard: `http://127.0.0.1:8000/`
+- dokumentacja Swagger: `http://127.0.0.1:8000/docs`
 
-To jest wcześniej niż klasyczne metody.
+Co pokazuje dashboard:
 
-2. Redukcja szumu bez utraty struktury
-TIMDR + Λ–τ–ρ robią coś, czego nie robi filtracja Fouriera:
-zachowują topologię sygnału, a nie tylko amplitudę.
-To jest kluczowe przy diagnostyce MHD.
+1. **Wykres sygnału** — oryginał razem ze zredukowanym TIMDR (na poprawnie
+   wyskalowanej osi czasu — patrz punkt 4 w "Historii poprawek") i
+   zaznaczonymi punktami skrętu Modelu J.
+2. **Dryf Λ-τ-ρ** — drugi wykres (słupkowy), pokazujący Λ, τ, ρ liczone
+   **osobno w każdym kolejnym oknie** (`latro_windowed()` w
+   `latro_core.py`, ten sam podział na okna co `timdr()`), zamiast jednej
+   uśrednionej wartości na cały sygnał. Pozwala zobaczyć, czy i gdzie
+   energia/rozrzut sygnału się zmienia w czasie.
+3. **Opis wyniku** — krótki, deterministyczny opis po polsku generowany z
+   policzonych statystyk (bez wywołania LLM): liczba próbek i redukcja,
+   zakres wartości, liczba wykrytych punktów Modelu J pogrupowana w
+   odrębne zdarzenia w czasie, oraz kierunek zmiany energii (ρ) między
+   początkiem a końcem sygnału. Kończy się zastrzeżeniem, że to opis
+   statystyczny, nie interpretacja fizyczna MHD.
 
-3. Detekcja „punktów krytycznych” w czasie rzeczywistym
-Model J działa jak detektor zmian kierunku energii.
-To jest idealne do:
-– sterowania cewkami,
-– gaszenia niestabilności,
-– przewidywania runaway electrons.
+Panel ma też przycisk "Anuluj" (ten sam wzorzec co w innych dashboardach w
+tej organizacji: `AbortController` po stronie przeglądarki + limit
+rozmiaru sygnału po stronie serwera — `MAX_SAMPLES = 200 000` w `api.py` —
+żeby duży plik nie zawiesił karty przeglądarki).
 
+**Wgrywanie HDF5:** HDF5 nie ma ustalonej konwencji "pierwsza kolumna to
+czas" jak CSV, więc `api.py` szuka datasetów nazwanych `time`/`t`/`czas`
+(oś X) i `signal`/`value`/`data`/... (sygnał); jeśli nazwy nie pasują, a
+jest dokładnie jeden pozostały 1D numeryczny dataset, używa go bez
+pytania; przy kilku kandydatach wybiera pierwszy alfabetycznie, ale **nie
+robi tego po cichu** — odpowiedź `/analyze` zawsze zawiera `hdf5_info` z
+pełną listą dostępnych datasetów i flagą `ambiguous`, a dashboard pokazuje
+to w żółtym pasku pod przyciskami. Wybór można wymusić polem "Dataset
+HDF5" (parametr `dataset` w API). Do testów jest w repo gotowy
+`data/w7x_mirnov_example.h5` (ten sam sygnał co CSV, datasety `time` i
+`signal`) — dashboard ma link do jego pobrania.
 
-### Uruchomienie demo
+Przykładowy wynik na wbudowanym sygnale syntetycznym (`window=64`,
+`threshold=2.0`, zweryfikowane live przez `POST /analyze`):
 
-```python
-import csv
-import matplotlib.pyplot as plt
-from demo_pipeline import timdr_filter, latro, model_j_points
+```
+n_samples: 2000 -> 32 (po TIMDR)
+Λ (lambda): 1.9562   τ (tau): 0.3294   ρ (rho): 0.1421
+Model J: 74 probki powyzej progu (3.7%), w 11 odrebnych miejscach w czasie
 
-time, signal = [], []
-with open("w7x_mirnov_example.csv") as f:
-    reader = csv.reader(f)
-    next(reader)
-    for t, s in reader:
-        time.append(float(t))
-        signal.append(float(s))
+Opis wyniku (generowany automatycznie):
+"Sygnal ma 2000 probek, zredukowanych przez TIMDR do 32 (okno=64).
+Wartosci miesza sie w zakresie od -0.718 do 1.238 (Lambda = 1.956,
+tau = 0.3294, rho = 0.1421). Model J wykryl 74 probek powyzej progu
+(3.7% wszystkich probek), skupionych w 11 miejscach w czasie
+(kilkanascie odrebnych zdarzen): ~t=0.124..0.21, ~t=0.401..0.565,
+~t=0.64..0.653, ~t=0.739..0.761, ~t=0.848 i 6 innych miejscach. Energia
+sygnalu (rho) liczona osobno w kolejnych oknach jest wzglednie stabilna
+w czasie. Uwaga: to automatyczny, czysto statystyczny opis (bez
+interpretacji fizycznej MHD) - patrz sekcja "Zakres i ograniczenia"
+w README."
+```
 
-reduced = timdr_filter(signal)
-lam, tau, rho = latro(signal)
-points = model_j_points(signal)
+(11 klastrów punktów, nie 3 — to oczekiwane: próg `threshold=2.0` łapie
+też mniejsze, naturalne wahania gradientu z szumu w sygnale, nie tylko 3
+celowo wstrzyknięte zdarzenia. Podniesienie progu w dashboardzie to
+ograniczy.)
 
-print("Λ–τ–ρ:", lam, tau, rho)
+Endpointy API:
 
-plt.figure(figsize=(12,5))
-plt.plot(time, signal, label="sygnał")
-plt.scatter([time[i] for i in points], [signal[i] for i in points],
-            color="red", s=10, label="Model J")
-plt.legend()
-plt.show()
+| Endpoint | Metoda | Opis |
+|---|---|---|
+| `/` | GET | dashboard |
+| `/example` | GET | metadane wbudowanego przykładowego sygnału |
+| `/analyze` | POST | uruchamia pipeline; pola formularza: `file` (CSV lub HDF5, opcjonalny), `use_example` (bool), `window`, `threshold`, `drop_last`, `dataset` (nazwa datasetu HDF5, opcjonalna) |
+| `/data/...` | GET | statyczny dostęp do plików w `data/` (np. pobranie przykładowego `.h5`) |
 
-## 🔬 Offline Demo — TIMDR + Λ–τ–ρ + Model J
-
-Ten demo pokazuje działanie pipeline’u na lokalnym sygnale Mirnova (`w7x_mirnov_example.csv`).
-
-### Etapy analizy
-
-1. **TIMDR (Filter)** – redukcja szumu poprzez różnicę kolejnych próbek.  
-2. **Λ–τ–ρ (Metryki)** – obliczenie trzech parametrów charakteryzujących sygnał:  
-    - Λ – amplituda zakresu,  
-    - τ – średnia wartość bezwzględna,  
-    - ρ – energia sygnału.  
-3. **Model J (Detekcja)** – wykrywanie lokalnych maksimów w sygnale magnetycznym.
-
-### Uruchomienie demo
-
-```python
-import csv
-import matplotlib.pyplot as plt
-from demo_pipeline import timdr_filter, latro, model_j_points
-
-time, signal = [], []
-with open("w7x_mirnov_example.csv") as f:
-    reader = csv.reader(f)
-    next(reader)
-    for t, s in reader:
-        time.append(float(t))
-        signal.append(float(s))
-
-reduced = timdr_filter(signal)
-lam, tau, rho = latro(signal)
-points = model_j_points(signal)
-
-print("Λ–τ–ρ:", lam, tau, rho)
-
-plt.figure(figsize=(12,5))
-plt.plot(time, signal, label="sygnał")
-plt.scatter([time[i] for i in points], [signal[i] for i in points],
-            color="red", s=10, label="Model J")
-plt.legend()
-plt.show()
+Odpowiedź `/analyze` zawiera dodatkowo: `latro_windowed` (`{x, lambda,
+tau, rho}` per okno), `description` (opis tekstowy) oraz — tylko dla
+wgranego HDF5 — `hdf5_info` (`available_datasets`, `signal_dataset`,
+`time_dataset`, `time_source`, `ambiguous`).
 
 ---
-## 🚀 Przykład użycia
+
+## Moduły
+
+### `parsers/`
+
+| Funkcja | Plik | Uwagi |
+|---|---|---|
+| `load_csv(path)` | `csv_parser.py` | plik CSV, 2 kolumny: czas, wartość |
+| `load_hdf5(path)` | `hdf5_parser.py` | zwraca `dict` wszystkich datasetów w pliku |
+| `load_mdsplus(server, tree, shot, signal)` | `mdsplus_parser.py` | wymaga zainstalowanego pakietu `MDSplus`, nieprzetestowane |
+
+### `timdr/`
+
+`timdr(signal, window=64, drop_last=False)` — dzieli sygnał na
+nienakładające się okna po `window` próbek i zwraca średnią każdego okna.
+Domyślnie **zachowuje** ostatnie, niepełne okno jako krótszy ostatni
+element wyniku (patrz "Historia poprawek" — wcześniej był on cicho
+odrzucany). `drop_last=True` przywraca stare zachowanie.
+
+`plot_timdr(original, reduced, window=64, time=None)` — rysuje sygnał
+oryginalny i zredukowany na wspólnej, poprawnie wyskalowanej osi X.
+
+### `latro/`
+
+`latro(signal)` z `latro_core.py` — **jedyna** definicja Λ-τ-ρ w tym repo:
+
+- **Λ (lambda)** — amplituda zakresu sygnału: `max(signal) - min(signal)`
+- **τ (tau)** — średnia wartość bezwzględna: `mean(|signal|)`
+- **ρ (rho)** — energia sygnału (średnia moc): `mean(signal**2)`
+
+To proste, opisowe metryki statystyczne w dziedzinie czasu — nie modelują
+fizycznej "transformacji" ani "defektu" w jakimś silniejszym sensie. Nazwy
+Λ/τ/ρ pochodzą z terminologii projektu GIA-TIMDR.
+
+`latro_features(signal)` z `latro_features.py` zwraca to samo jako `dict`
+(`{"lambda": ..., "tau": ..., "rho": ...}`) — jest cienkim wrapperem nad
+`latro()`, żeby nie było dwóch osobnych implementacji do rozjechania się
+(patrz "Historia poprawek").
+
+`latro_windowed(signal, window=64, drop_last=False)` — liczy `latro()`
+osobno dla każdego kolejnego okna sygnału (ten sam podział na okna co
+`timdr()`), zamiast jednej uśrednionej trójki na cały sygnał. Zwraca
+`(lambdas, taus, rhos)` — trzy tablice, po jednej wartości na okno. Do
+tego, żeby zobaczyć jak Λ-τ-ρ **zmieniają się w czasie**, nie tylko ich
+średnią (używane przez dashboard do wykresu "dryfu").
+
+### `model_j/`
+
+`model_j(signal, threshold=2.0)` — liczy gradient sygnału, standaryzuje go
+(z-score) i zwraca indeksy próbek, gdzie `|z| > threshold`. To detektor
+lokalnych, gwałtownych zmian gradientu ("punktów skrętu"), a nie detektor
+lokalnych maksimów.
+
+---
+
+## Demo
+
+Przykładowy sygnał `data/w7x_mirnov_example.csv` jest **syntetyczny**:
+suma dwóch sinusoid + szum + 3 wstrzyknięte gwałtowne zdarzenia w próbkach
+400, 950, 1600 (dokładny przepis generowania w
+`data/example_metadata.json`). Nazwa nawiązuje do sygnału z cewki Mirnova
+wyłącznie dla ilustracji — to nie są dane z żadnego prawdziwego urządzenia.
+
+Uruchomienie:
+
+```bash
+python demo/run_demo.py
+```
+
+albo interaktywnie: `demo/fusion_demo.ipynb`.
+
+Kod demo używa bezpośrednio funkcji bibliotecznych (nie ich reimplementacji
+w komentarzach) — to samo, co jest w `timdr/`, `latro/`, `model_j/`.
+
+---
+
+## Przykład użycia
 
 ```python
 from parsers.csv_parser import load_csv
@@ -193,148 +254,153 @@ from timdr.timdr_filter import timdr
 from latro.latro_core import latro
 from model_j.model_j_detector import model_j
 
-time, signal = load_csv("data/example_w7x_signal.csv")
+time, signal = load_csv("data/w7x_mirnov_example.csv")
 
-reduced = timdr(signal)
+reduced = timdr(signal, window=64)
 lam, tau, rho = latro(signal)
-points = model_j(signal)
+points = model_j(signal, threshold=2.0)
 
-print("Λ–τ–ρ:", lam, tau, rho)
-print("Punkty Modelu J:", points[:10])
-
-
----
-# jbackk-lang — Struktury Informacji, Modele Skrętu i Analiza Sygnałów
-
-Organizacja skupiona na badaniu struktury informacji, redukcji wymiarów,
-modelach skrętu oraz narzędziach do analizy sygnałów — od języka naturalnego,
-przez dane techniczne, aż po diagnostykę plazmy w fuzji jądrowej.
-
-Nasze projekty łączą:
-- modele abstrakcyjne (GIA, Λ–τ–ρ, Model J),
-- redukcję informacji (TIMDR),
-- analizę sygnałów,
-- narzędzia open‑source,
-- zastosowania naukowe i inżynieryjne.
+print("Λ-τ-ρ:", lam, tau, rho)
+print("Punkty Modelu J:", list(points)[:10])
+```
 
 ---
 
-## 🔥 Projekty
+## Testy
 
-### **fusion-tools**
-Narzędzia do analizy danych z fuzji jądrowej (W7‑X, JET, DIII‑D, EAST)  
-z wykorzystaniem modeli:
-- TIMDR — redukcja informacji i defektów,
-- Λ–τ–ρ — analiza strukturalna,
-- Model J — detekcja punktów skrętu,
-- GIA — interpretacja warstwowa.
+```bash
+pytest tests/ -v
+```
 
-Repozytorium zawiera:
-- parsowanie danych (HDF5, MDSplus, CSV),
-- filtry i ekstrakcję cech,
-- wykrywanie anomalii,
-- przykładowe notebooki,
-- pipeline analizy plazmy.
-
----
-
-## 🧠 Filozofia
-
-Każdy sygnał — językowy, fizyczny, techniczny — ma strukturę.  
-Naszym celem jest:
-- wydobyć tę strukturę,
-- zredukować szum,
-- znaleźć punkty skrętu,
-- zrozumieć transformacje,
-- opisać defekty.
-
-Modele GIA, TIMDR, Λ–τ–ρ i Model J powstały jako narzędzia
-do pracy z informacją w sposób spójny, warstwowy i logiczny.
+Testy obejmują: poprawność `latro()`/`latro_features()`/`latro_windowed()`
+(w tym regresję na wcześniejszą niespójność definicji), zabezpieczenie
+`model_j()` przed dzieleniem przez zero, zachowanie ostatniego niepełnego
+okna w `timdr()`, wczytywanie CSV pod poprawną ścieżką importu, pełny
+pipeline end-to-end na przykładowym sygnale (sprawdza, że Model J
+faktycznie wykrywa 3 wstrzyknięte zdarzenia), oraz endpointy API
+(`tests/test_api.py` — `/analyze` na przykładzie, na wgranym CSV i na
+wgranym HDF5 z kilkoma wariantami wyboru datasetu, limit rozmiaru,
+odrzucanie nieobsługiwanych rozszerzeń, obecność `latro_windowed` i
+`description` w odpowiedzi). 34/34 testów przechodzi.
 
 ---
 
-## 🌍 Zastosowania
+## Zakres i ograniczenia
 
-- analiza sygnałów z fuzji jądrowej,
-- wykrywanie anomalii w czasie rzeczywistym,
-- przetwarzanie języka naturalnego,
-- analiza danych technicznych,
-- redukcja wymiarów,
-- modele predykcyjne,
-- wizualizacja struktury informacji.
-
----
-
-## 🤝 Współpraca
-
-Projekty są otwarte.  
-Jeśli chcesz dołożyć własne moduły, diagnostyki, filtry lub modele — zapraszamy.
-
----
-
-## 📜 Licencja
-
-MIT — wolność tworzenia, wolność eksperymentowania.
-
----
-## 🧪 Offline Demo — TIMDR + Λ–τ–ρ + Model J
-
-Demo działa w pełni offline na sygnale `w7x_mirnov_example.csv`.
-
-### Pipeline
-1. **TIMDR** — redukcja szumu (różnica kolejnych próbek)  
-2. **Λ–τ–ρ** — metryki strukturalne sygnału  
-3. **Model J** — detekcja punktów skrętu (lokalne maksima)
-
-### Kod demo
-
-```python
-import csv
-import matplotlib.pyplot as plt
-
-time = []
-signal = []
-
-with open("w7x_mirnov_example.csv") as f:
-    reader = csv.reader(f)
-    next(reader)
-    for t, s in reader:
-        time.append(float(t))
-        signal.append(float(s))
-
-def timdr_filter(x):
-    return [x[i+1] - x[i] for i in range(len(x)-1)]
-
-def latro(x):
-    lam = max(x) - min(x)
-    tau = sum(abs(v) for v in x) / len(x)
-    rho = sum(v*v for v in x) / len(x)
-    return lam, tau, rho
-
-def model_j_points(x):
-    pts = []
-    for i in range(1, len(x)-1):
-        if x[i] > x[i-1] and x[i] > x[i+1]:
-            pts.append(i)
-    return pts
-
-reduced = timdr_filter(signal)
-lam, tau, rho = latro(signal)
-points = model_j_points(signal)
-
-print("Λ–τ–ρ:", lam, tau, rho)
-
-plt.figure(figsize=(12,5))
-plt.plot(time, signal, label="sygnał")
-plt.scatter([time[i] for i in points], [signal[i] for i in points],
-            color="red", s=10, label="Model J")
-plt.legend()
-plt.show()
----
-Wynik
-
+- Brak prawdziwych danych open-data z W7-X/JET/DIII-D/EAST w repozytorium
+  — tylko syntetyczny przykład do demo/testów.
+- `parsers/mdsplus_parser.py` nie był uruchamiany przeciw prawdziwemu
+  serwerowi MDSplus w tym środowisku — API wygląda poprawnie, ale jest
+  nieprzetestowane empirycznie.
+- Λ-τ-ρ i Model J to proste metryki/detektory statystyczne w dziedzinie
+  czasu, nie zwalidowany model fizyczny MHD. Interpretacje w rodzaju
+  "punkty skrętu = wczesne wykrywanie ELM/sawtooth" są hipotezami do
+  zweryfikowania na prawdziwych danych, nie potwierdzonym wynikiem.
+  "Opis wyniku" w dashboardzie to czysto statystyczne podsumowanie
+  (liczby, zakresy, trend) — nie diagnoza plazmy.
+- Wgrywanie HDF5 w `/analyze` ładuje **wszystkie** datasety pliku do
+  pamięci naraz (`load_hdf5()` z `parsers/hdf5_parser.py` robi to
+  eagerly) zanim wybierze, który jest sygnałem — dla pliku z dużą liczbą
+  dużych, niepotrzebnych datasetów obok właściwego sygnału może to być
+  nieefektywne. Wybór datasetu przy niejednoznacznej nazwie jest
+  deterministyczny (alfabetyczny), ale zgadywany — zawsze sprawdź pole
+  `hdf5_info`/żółty pasek w dashboardzie, że wybrano właściwy dataset.
 
 ---
 
+## Historia poprawek (sierpień 2026)
+
+Audyt tego repozytorium znalazł i naprawił:
+
+1. **Trzy wzajemnie niespójne definicje Λ-τ-ρ** — inna w `latro_core.py`
+   (oparta na gradiencie), inna w `latro_features.py` (`tau=std(signal)`),
+   jeszcze inna w kodzie demo w README. Skonsolidowane do jednej definicji
+   (patrz sekcja `latro/` wyżej); `latro_features()` teraz deleguje do
+   `latro()`.
+2. **Dzielenie przez zero w `model_j()`** — dla sygnału stałego
+   `std(gradient) == 0` dokładnie, co dawało `RuntimeWarning: invalid
+   value encountered in divide` i cichy pusty wynik. Dodatkowo dla
+   sygnału idealnie liniowego `std(gradient)` wychodzi rzędu `1e-16`
+   (szum zmiennoprzecinkowy, nie dokładne zero) — dzielenie przez tak
+   małą liczbę wzmacniało ten szum do pozornie dużych z-score i dawało
+   fałszywe detekcje na sygnale, który w rzeczywistości jest płaski.
+   Zabezpieczenie użyte jest teraz progiem względnym do skali gradientu
+   (łapie oba przypadki), zweryfikowane testami regresyjnymi.
+3. **`timdr()` cicho gubił ostatnie, niepełne okno** sygnału. Teraz
+   domyślnie je zachowuje (`drop_last=True` przywraca stare zachowanie).
+4. **`plot_timdr()` rysował zredukowany sygnał na złej osi X** (bez
+   korekty pod downsampling), co dawało mylący wykres. Naprawione.
+5. **Błędna ścieżka importu w README** — dokumentacja mówiła
+   `from parsers.csv_parser import load_csv`, ale plik faktycznie był w
+   `tools/parsers/csv_parser.py` (potwierdzone przez `ModuleNotFoundError`
+   na żywo). Plik przeniesiony do `parsers/csv_parser.py`, zgodnie z
+   dokumentacją i strukturą pozostałych parserów.
+6. **README był wewnętrznie zepsuty**: sekcja "Offline Demo" powielona 4
+   razy z niespójnym kodem, niedomknięte bloki kodu psujące renderowanie
+   na GitHubie, oraz przypadkowo wklejona cała treść README organizacji
+   jbackk-lang wewnątrz README tego repo. Przepisane od zera.
+7. Brak `requirements.txt`, brak działającego notebooka demo (`
+   fusion_demo.ipynb` był pustym/niepoprawnym JSON-em), brak przykładowego
+   pliku sygnału mimo odwołań do niego w README, zero testów — wszystko
+   dodane.
+
+Kolejna runda dodała webowy dashboard (`api.py` + `static/index.html` +
+`run.bat`), a potem — na wyraźną prośbę — trzy rozszerzenia:
+
+8. **Wgrywanie HDF5** w `/analyze`, obok CSV — z jawną (nie cichą) logiką
+   wyboru datasetu czasu/sygnału i przykładowym plikiem
+   `data/w7x_mirnov_example.h5` do testów.
+9. **`latro_windowed()`** — Λ-τ-ρ liczone osobno w każdym oknie zamiast
+   jednej sumarycznej wartości na cały sygnał, pokazane jako drugi wykres
+   (dryf w czasie) w dashboardzie.
+10. **Automatyczny opis wyniku** — deterministyczny tekst po polsku
+    generowany z policzonych statystyk (bez LLM), z jawnym zastrzeżeniem,
+    że to opis statystyczny, nie interpretacja fizyczna.
+
+Zgłoszenie: po `run.bat` przeglądarka "migała i gasła", odświeżanie nic
+nie dawało, "jakby serwer się wyłączał". Diagnoza (`.venv` od
+wcześniejszego uruchomienia było już w repo, więc dało się sprawdzić
+naprawdę zainstalowane wersje zamiast zgadywać — Python 3.11.0, fastapi
+0.141.1, wszystkie zależności obecne i zgodne z tym, co jest testowane w
+CI) wykluczyła "brakującą zależność" jako przyczynę, ale przy okazji
+znalazła dwa realne, niezależne błędy:
+
+11. **`file: UploadFile | None` i `dataset: str | None` w `/analyze`** —
+    składnia `X | None` w adnotacji typu działa tylko na Pythonie 3.10+;
+    na starszym Pythonie `api.py` wywaliłby się `TypeError` **przy
+    starcie**, zanim serwer w ogóle by wstał. Zmienione na
+    `Optional[X]` (`typing`), które działa od Pythona 3.8 — niezależnie
+    od tego, czy to była faktyczna przyczyna zgłoszenia, to realne
+    zawężenie wymagań (repo wymagało 3.10+ bez potrzeby).
+12. **`run.bat` nie miał `pause` po linii z uvicornem** — jeśli serwer
+    wywalał się od razu po starcie, okno konsoli (odpalone dwuklikiem)
+    znikało natychmiast, zanim dało się przeczytać traceback — dokładnie
+    objaw "miga i gaśnie". Dodany bezwarunkowy `pause` na końcu.
+13. **Brak sprawdzenia zajętego portu 8000** — jeśli poprzednie
+    uruchomienie nie zamknęło się czysto (np. zamknięcie okna "krzyżykiem"
+    zamiast Ctrl+C), `python.exe` czasem zostaje jako proces w tle nadal
+    trzymający port. Kolejne uruchomienie wtedy natychmiast wywala się
+    błędem "address already in use" — przeglądarka pokazuje martwą
+    stronę, dokładnie jak "serwer się wyłączył", mimo że nowy serwer nigdy
+    nie wstał. `run.bat` teraz sprawdza to z wyprzedzeniem
+    (`netstat`/`findstr`) i podpowiada jak zabić zawieszony proces zamiast
+    ciszy.
+14. **`from parsers.hdf5_parser import load_hdf5` (a wewnątrz `import
+    h5py`) był twardym importem na górze `api.py`** — gdyby instalacja
+    `h5py` na czyimś Windowsie zawiodła (h5py ma binarne rozszerzenie),
+    cały dashboard, łącznie z obsługą CSV niezwiązaną z h5py, w ogóle by
+    nie wystartował. Import jest teraz w `try/except`; brak/zepsute h5py
+    wyłącza tylko obsługę HDF5 z czytelnym komunikatem 400, reszta działa
+    normalnie. Zweryfikowane symulując brak h5py w teście.
+
+Punkty 11-14 zostały naprawione i zweryfikowane (34/34 testów + symulacja
+brakującego h5py), ale nie udało się jednoznacznie potwierdzić, który z
+nich (jeśli którykolwiek) był rzeczywistą przyczyną zgłoszonego problemu —
+bez dokładnego komunikatu błędu z ekranu użytkownika to najbardziej
+prawdopodobne kandydaci, nie potwierdzona diagnoza.
+
 ---
-# ⭐ MIT — rób, co chcesz, byle z głową.
+
+## Licencja
+
+MIT
