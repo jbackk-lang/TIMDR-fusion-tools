@@ -1,6 +1,9 @@
 {
-    "source": "W7-X public data",
-    "diagnostic": "Mirnov coil",
-    "sampling_rate": "1 MHz",
-    "notes": "Przykładowy sygnał do testów TIMDR i Λ–τ–ρ"
+    "source": "SYNTETYCZNY sygnal wygenerowany lokalnie - NIE prawdziwe dane z W7-X ani zadnego innego urzadzenia",
+    "file": "w7x_mirnov_example.csv",
+    "diagnostic": "brak (dane syntetyczne, nazwane po wzorze sygnalu z cewki Mirnova wylacznie dla ilustracji)",
+    "generation": "suma dwoch sinusoid (3 Hz i 17 Hz) + szum gaussowski (std=0.03) + 3 wstrzykniete gwaltowne 'punkty skretu' w probkach 400, 950, 1600",
+    "sampling_rate_hz": 1000,
+    "n_samples": 2000,
+    "notes": "Przykladowy sygnal do testow i demo TIMDR / Lambda-tau-rho / Model J. Nie pochodzi z zadnego prawdziwego urzadzenia fuzyjnego - repo nie zawiera prawdziwych danych open-data W7-X/JET/DIII-D/EAST. Do pracy z prawdziwymi danymi uzyj parsers/hdf5_parser.py lub parsers/mdsplus_parser.py z danymi pobranymi bezposrednio z odpowiedniego archiwum (np. W7-X ArchiveDB)."
 }
