@@ -105,12 +105,54 @@ Co pokazuje dashboard:
    `latro_core.py`, ten sam podział na okna co `timdr()`), zamiast jednej
    uśrednionej wartości na cały sygnał. Pozwala zobaczyć, czy i gdzie
    energia/rozrzut sygnału się zmienia w czasie.
-3. **Opis wyniku** — krótki, deterministyczny opis po polsku generowany z
+3. **Widmo częstotliwości (FFT)** — amplituda w funkcji częstotliwości
+   (`np.fft.rfft`, bez składowej DC), liczona po stronie serwera
+   (`_fft_spectrum()` w `api.py`). Przydatne do zobaczenia oscylacji/modów,
+   które na surowym przebiegu czasowym mogą być słabo widoczne.
+4. **Histogram z-score gradientu** — rozkład dokładnie tej wartości, którą
+   progowuje Model J (`gradient_zscore()`, patrz niżej) — pokazuje GDZIE
+   próg faktycznie "odcina" rozkład, nie tylko finalną liczbę wykryć.
+5. **Opis wyniku** — krótki, deterministyczny opis po polsku generowany z
    policzonych statystyk (bez wywołania LLM): liczba próbek i redukcja,
    zakres wartości, liczba wykrytych punktów Modelu J pogrupowana w
    odrębne zdarzenia w czasie, oraz kierunek zmiany energii (ρ) między
    początkiem a końcem sygnału. Kończy się zastrzeżeniem, że to opis
    statystyczny, nie interpretacja fizyczna MHD.
+6. **Porównanie scenariuszy demo** — osobny panel, który uruchamia
+   Λ-τ-ρ i Model J na WSZYSTKICH scenariuszach demo naraz (ten sam
+   window/threshold z formularza) i pokazuje wynik jako wykres słupkowy
+   (liczba punktów Modelu J) plus tabelę (`GET /scenarios/compare`).
+
+### Scenariusze demo
+
+Zamiast jednego wbudowanego sygnału, dashboard ma selektor z pięcioma
+**syntetycznymi** scenariuszami (`demo/scenarios.py`, `GET /scenarios`):
+
+| id | Co pokazuje |
+|---|---|
+| `baseline` | Domyślny przykład: 2 sinusoidy + 3 wstrzyknięte zdarzenia (bez zmian względem dotychczasowego `data/w7x_mirnov_example.csv`). |
+| `quiet` | Kontrolka negatywna: prawie płaski sygnał, zero wstrzykniętych zdarzeń. |
+| `single_burst` | Cichy sygnał + jedno silne, izolowane zdarzenie. |
+| `growing_mode` | Oscylacja o amplitudzie rosnącej wykładniczo (dobry przykład na wykres dryfu ρ). |
+| `noisy_flat` | Sam szum, większa amplituda niż `quiet`, zero struktury. |
+
+**Uczciwa, trochę nieoczywista obserwacja z panelu porównania** (dokładnie
+ten rodzaj rzeczy, przed którą przestrzega protokół anty-numerologiczny
+reszty ekosystemu TIMDR): przy domyślnym progu 2.0 `quiet` (sam szum, ZERO
+prawdziwych zdarzeń) daje ok. 90-100 "wykryć" Modelu J na 2000 próbek — to
+statystyczny efekt progowania z-score na czystym szumie (oczekiwane ~4.5%
+przy |z|>2), nie błąd. `single_burst` (JEDNO prawdziwe, silne zdarzenie)
+daje ich zaskakująco MNIEJ (~13), bo pojedynczy duży skok podbija
+odchylenie standardowe gradientu użyte do normalizacji z-score, co tłumi
+detekcje szumu tła gdzie indziej w tym samym sygnale. Wniosek: surowa
+liczba wykryć Modelu J bez takiego kontekstu nic nie mówi o tym, czy
+sygnał ma prawdziwą strukturę — patrz `tests/test_api.py::test_scenarios_compare_endpoint_returns_all_scenarios`.
+
+Miejsce na realne dane w przyszłości: jeśli pojawi się prawdziwy wycinek
+sygnału (np. z otwartego zbioru
+[TCABR na Zenodo](https://zenodo.org/records/21843354) — prawdziwe cewki
+Mirnova, CC-BY 4.0), `demo/scenarios.py` ma to opisane wprost jako miejsce
+do dodania kolejnego wpisu z `source="real:..."` zamiast `"synthetic"`.
 
 Panel ma też przycisk "Anuluj" (ten sam wzorzec co w innych dashboardach w
 tej organizacji: `AbortController` po stronie przeglądarki + limit
@@ -165,9 +207,24 @@ Endpointy API:
 | `/data/...` | GET | statyczny dostęp do plików w `data/` (np. pobranie przykładowego `.h5`) |
 
 Odpowiedź `/analyze` zawiera dodatkowo: `latro_windowed` (`{x, lambda,
-tau, rho}` per okno), `description` (opis tekstowy) oraz — tylko dla
-wgranego HDF5 — `hdf5_info` (`available_datasets`, `signal_dataset`,
-`time_dataset`, `time_source`, `ambiguous`).
+tau, rho}` per okno), `spectrum` (`{freq, magnitude}`, FFT bez składowej
+DC), `model_j_zscore_hist` (`{bin_edges, counts, is_flat, threshold}`),
+`description` (opis tekstowy), `scenario` (metadane wybranego scenariusza
+demo — tylko gdy nie wgrano pliku) oraz — tylko dla wgranego HDF5 —
+`hdf5_info` (`available_datasets`, `signal_dataset`, `time_dataset`,
+`time_source`, `ambiguous`).
+
+Dodatkowe endpointy:
+
+| Endpoint | Metoda | Opis |
+|---|---|---|
+| `/scenarios` | GET | lista dostępnych scenariuszy demo (`id`, `label`, `description`) |
+| `/scenarios/compare` | GET | Λ-τ-ρ i liczba punktów Modelu J dla wszystkich scenariuszy naraz (parametry `window`, `threshold`) |
+
+`/analyze` przyjmuje teraz dodatkowo pole formularza `scenario` (id z
+`/scenarios`) — używane, gdy nie wgrano pliku. `use_example=true` bez
+`scenario` nadal działa dokładnie jak dawniej (alias na scenariusz
+`baseline`, ten sam plik CSV).
 
 ---
 

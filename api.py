@@ -24,8 +24,9 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from demo.scenarios import generate_scenario, list_scenarios
 from latro.latro_core import latro, latro_windowed
-from model_j.model_j_detector import model_j
+from model_j.model_j_detector import gradient_zscore, model_j
 from timdr.timdr_filter import timdr
 
 # load_hdf5() (parsers/hdf5_parser.py) importuje h5py. h5py to zewnetrzny
@@ -222,6 +223,50 @@ def _describe_result(t, signal_arr, window, reduced, lam, tau, rho, points, rhos
     return " ".join(parts)
 
 
+def _fft_spectrum(signal_arr, dt):
+    """
+    Widmo amplitudowe sygnalu (FFT jednostronne, np.fft.rfft) - do panelu
+    "Widmo czestotliwosci" w dashboardzie. Uzyteczne przy sygnalach typu
+    Mirnov, gdzie oscylacje/mody czesto lepiej widac w dziedzinie
+    czestotliwosci niz na surowym przebiegu czasowym.
+
+    dt - odstep miedzy probkami w sekundach (uzywany tylko do policzenia
+    osi czestotliwosci; jesli oryginalna os czasu nie jest w sekundach,
+    os czestotliwosci bedzie odpowiednio przeskalowana, nie w Hz).
+
+    Zwraca dict {freq, magnitude} (bez skladowej DC - f=0 - zeby nie
+    zdominowala wykresu, gdy sygnal ma niezerowa srednia).
+    """
+    n = len(signal_arr)
+    if n < 4 or dt <= 0:
+        return {"freq": [], "magnitude": []}
+    x = np.asarray(signal_arr, dtype=float)
+    mag = np.abs(np.fft.rfft(x)) / n
+    freq = np.fft.rfftfreq(n, d=dt)
+    # pomijamy skladowa DC (freq[0] == 0) - amplituda sredniej wartosci
+    # sygnalu w skali liniowej zwykle przytlacza reszte widma na wykresie
+    return {"freq": freq[1:].tolist(), "magnitude": mag[1:].tolist()}
+
+
+def _zscore_histogram(signal_arr, threshold, bins=40):
+    """
+    Histogram z-score gradientu (ta sama wartosc, ktorej prog uzywa
+    Model J - patrz model_j.gradient_zscore()) - do panelu histogramu w
+    dashboardzie, zeby bylo widac gdzie prog `threshold` faktycznie
+    "odcina" rozklad, a nie tylko finalna liczbe wykrytych punktow.
+    """
+    z = gradient_zscore(signal_arr)
+    if z.size == 0:
+        return {"bin_edges": [], "counts": [], "is_flat": True, "threshold": threshold}
+    counts, edges = np.histogram(z, bins=bins)
+    return {
+        "bin_edges": edges.tolist(),
+        "counts": counts.tolist(),
+        "is_flat": False,
+        "threshold": threshold,
+    }
+
+
 def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None):
     n = len(signal_arr)
     if n == 0:
@@ -239,6 +284,8 @@ def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None
     lam, tau, rho = latro(signal_arr)
     lambdas_w, taus_w, rhos_w = latro_windowed(signal_arr, window=window, drop_last=drop_last)
     points = model_j(signal_arr, threshold=threshold)
+    spectrum = _fft_spectrum(signal_arr, dt)
+    zscore_hist = _zscore_histogram(signal_arr, threshold)
 
     description = _describe_result(t, signal_arr, window, reduced, lam, tau, rho, points, rhos_w)
 
@@ -262,6 +309,8 @@ def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None
         "threshold": threshold,
         "drop_last": drop_last,
         "description": description,
+        "spectrum": spectrum,
+        "model_j_zscore_hist": zscore_hist,
     }
     if extra:
         result.update(extra)
@@ -279,6 +328,45 @@ def example_metadata():
         return json.load(f)
 
 
+@app.get("/scenarios")
+def scenarios_endpoint():
+    """Lista dostepnych scenariuszy demo (patrz demo/scenarios.py) - do
+    wypelnienia selektora w dashboardzie. Nie generuje sygnalow (tanie,
+    samo metadane: id/label/description)."""
+    return {"scenarios": list_scenarios()}
+
+
+@app.get("/scenarios/compare")
+def scenarios_compare(window: int = 64, threshold: float = 2.0):
+    """
+    Lambda-tau-rho i liczba punktow Model J dla WSZYSTKICH scenariuszy demo
+    naraz, przy tym samym window/threshold - do panelu porownania w
+    dashboardzie. Zwraca tylko zagregowane liczby (nie pelne przebiegi
+    czasowe), zeby payload zostal maly nawet dla wielu/dluzszych
+    scenariuszy.
+    """
+    if window < 1:
+        raise HTTPException(400, "window musi byc >= 1.")
+    rows = []
+    for entry in list_scenarios():
+        sid = entry["id"]
+        _time_arr, signal_arr, _meta = generate_scenario(sid)
+        lam, tau, rho = latro(signal_arr)
+        points = model_j(signal_arr, threshold=threshold)
+        rows.append(
+            {
+                "id": sid,
+                "label": entry["label"],
+                "n_samples": len(signal_arr),
+                "lambda": lam,
+                "tau": tau,
+                "rho": rho,
+                "model_j_count": int(len(points)),
+            }
+        )
+    return {"window": window, "threshold": threshold, "scenarios": rows}
+
+
 @app.post("/analyze")
 async def analyze(
     file: Optional[UploadFile] = File(default=None),
@@ -286,13 +374,25 @@ async def analyze(
     threshold: float = Form(default=2.0),
     drop_last: bool = Form(default=False),
     use_example: bool = Form(default=False),
+    scenario: Optional[str] = Form(default=None),
     dataset: Optional[str] = Form(default=None),
 ):
-    if use_example or file is None:
-        df = pd.read_csv(EXAMPLE_CSV)
-        time_arr = df.iloc[:, 0].to_numpy(dtype=float)
-        signal_arr = df.iloc[:, 1].to_numpy(dtype=float)
-        return _run_pipeline(time_arr, signal_arr, window, threshold, drop_last)
+    if file is None:
+        # Zachowanie wsteczne: use_example=True (albo brak pliku i brak
+        # scenario) daje dokladnie ten sam wynik co dawniej - odczyt tego
+        # samego pliku EXAMPLE_CSV, teraz przez scenario "baseline"
+        # (demo/scenarios.py._baseline() czyta dokladnie ten sam plik).
+        scenario_id = scenario if scenario else "baseline"
+        try:
+            time_arr, signal_arr, scenario_meta = generate_scenario(scenario_id)
+        except KeyError:
+            available = ", ".join(s["id"] for s in list_scenarios())
+            raise HTTPException(
+                400, f"Nieznany scenariusz '{scenario_id}'. Dostepne: {available}"
+            )
+        return _run_pipeline(
+            time_arr, signal_arr, window, threshold, drop_last, extra={"scenario": scenario_meta}
+        )
 
     name = file.filename.lower()
     raw = await file.read()

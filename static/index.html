@@ -21,6 +21,12 @@
   #status { margin-top: 10px; font-size: 13px; color: #9aa4b2; min-height: 18px; }
   #status.err { color: #ff8080; }
   #hdf5-info { margin-top: 8px; font-size: 12px; color: #f0c674; display: none; }
+  #scenario-info { margin-top: 8px; font-size: 12px; color: #9aa4b2; display: none; }
+  select { padding: 6px 8px; background: #0f1420; border: 1px solid #2b364d; color: #e6e9ef; border-radius: 6px; min-width: 220px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+  table.cmp th, table.cmp td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #262f42; }
+  table.cmp th { color: #9aa4b2; font-weight: 500; }
+  #cmpBtn { background: #3a4a63; color: #e6e9ef; }
   .metrics { display: flex; gap: 24px; margin-top: 4px; flex-wrap: wrap; }
   .metric { background: #0f1420; border: 1px solid #262f42; border-radius: 8px; padding: 10px 16px; }
   .metric .label { font-size: 11px; color: #9aa4b2; text-transform: uppercase; letter-spacing: .04em; }
@@ -37,7 +43,11 @@
   <div class="panel">
     <div class="row">
       <div>
-        <label>Plik CSV lub HDF5 (opcjonalnie)</label>
+        <label>Scenariusz demo (u&#380;ywany, je&#347;li nie wgrano pliku)</label>
+        <select id="scenario"></select>
+      </div>
+      <div>
+        <label>Plik CSV lub HDF5 (opcjonalnie, nadpisuje scenariusz)</label>
         <input type="file" id="file" accept=".csv,.h5,.hdf5">
       </div>
       <div>
@@ -58,6 +68,7 @@
       </div>
     </div>
     <div id="status"></div>
+    <div id="scenario-info"></div>
     <div id="hdf5-info"></div>
   </div>
 
@@ -82,8 +93,32 @@
   </div>
 
   <div class="panel">
+    <h2>Widmo cz&#281;stotliwo&#347;ci (FFT, bez sk&#322;adowej DC)</h2>
+    <div class="sub" style="margin-bottom:8px;">Amplituda w funkcji cz&#281;stotliwo&#347;ci - u&#380;yteczne do zobaczenia oscylacji/mod&oacute;w, kt&oacute;re na surowym przebiegu czasowym mog&#261; by&#263; s&#322;abo widoczne.</div>
+    <canvas id="spectrumChart"></canvas>
+  </div>
+
+  <div class="panel">
+    <h2>Histogram z-score gradientu (pr&oacute;g Modelu J)</h2>
+    <div class="sub" style="margin-bottom:8px;">Rozk&#322;ad warto&#347;ci z-score u&#380;ywanych przez Model J. Czerwone s&#322;upki = powy&#380;ej progu <span id="threshLabel">-</span>; pokazuje, GDZIE prog faktycznie "odcina" rozk&#322;ad, nie tylko finaln&#261; liczb&#281; wykry&#263;.</div>
+    <canvas id="histChart"></canvas>
+  </div>
+
+  <div class="panel">
     <h2>Opis wyniku</h2>
     <div id="description">Uruchom analiz&#281;, &#380;eby zobaczy&#263; opis.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Por&oacute;wnanie wszystkich scenariuszy demo</h2>
+    <div class="sub" style="margin-bottom:8px;">Uruchamia &Lambda;-&tau;-&rho; i Model J na WSZYSTKICH scenariuszach naraz, przy aktualnym window/threshold z formularza powy&#380;ej - do por&oacute;wnania, nie zast&#281;puje g&#322;&oacute;wnej analizy.</div>
+    <button id="cmpBtn">Por&oacute;wnaj wszystkie scenariusze</button>
+    <div id="cmpStatus" style="margin-top:8px; font-size:13px; color:#9aa4b2;"></div>
+    <canvas id="cmpChart" style="margin-top:12px;"></canvas>
+    <table class="cmp" id="cmpTable" style="display:none;">
+      <thead><tr><th>Scenariusz</th><th>Pr&oacute;bki</th><th>&Lambda;</th><th>&tau;</th><th>&rho;</th><th>Model J</th></tr></thead>
+      <tbody id="cmpTableBody"></tbody>
+    </table>
   </div>
 
   <div class="sub">
@@ -96,7 +131,28 @@
 <script>
 let chart = null;
 let driftChart = null;
+let spectrumChart = null;
+let histChart = null;
+let cmpChart = null;
 let currentAbort = null;
+
+async function loadScenarios() {
+  try {
+    const resp = await fetch('/scenarios');
+    const data = await resp.json();
+    const sel = document.getElementById('scenario');
+    sel.innerHTML = '';
+    for (const s of data.scenarios) {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.label;
+      opt.title = s.description;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    setStatus('Nie udalo sie wczytac listy scenariuszy: ' + e, true);
+  }
+}
 
 function resetGoButton() {
   document.getElementById('go').disabled = false;
@@ -122,6 +178,17 @@ function setHdf5Info(data) {
     msg += ' Wybor byl niejednoznaczny (kilku kandydatow pasowalo) - jesli to zle, wpisz nazwe w pole "Dataset HDF5" i uruchom ponownie.';
   }
   el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setScenarioInfo(data) {
+  const el = document.getElementById('scenario-info');
+  if (!data.scenario) {
+    el.style.display = 'none';
+    return;
+  }
+  const s = data.scenario;
+  el.textContent = `Scenariusz "${s.label}" (${s.source}): ${s.generation}`;
   el.style.display = 'block';
 }
 
@@ -189,6 +256,119 @@ function renderDriftChart(data) {
   });
 }
 
+function renderSpectrumChart(data) {
+  const ctx = document.getElementById('spectrumChart').getContext('2d');
+  if (spectrumChart) spectrumChart.destroy();
+
+  const spec = data.spectrum;
+  const points = spec.freq.map((f, i) => ({ x: f, y: spec.magnitude[i] }));
+
+  spectrumChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Amplituda', data: points, showLine: true, pointRadius: 0, borderColor: '#7ee0c3', borderWidth: 1.5 },
+      ],
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        x: { type: 'linear', title: { display: true, text: 'czestotliwosc', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+        y: { title: { display: true, text: 'amplituda', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+function renderHistChart(data) {
+  const ctx = document.getElementById('histChart').getContext('2d');
+  if (histChart) histChart.destroy();
+
+  const hist = data.model_j_zscore_hist;
+  document.getElementById('threshLabel').textContent = `|z| > ${hist.threshold}`;
+
+  if (hist.is_flat) {
+    histChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: [], datasets: [] },
+      options: { responsive: true, animation: false, plugins: { legend: { display: false } } },
+    });
+    return;
+  }
+
+  const edges = hist.bin_edges;
+  const labels = edges.slice(0, -1).map((e, i) => ((e + edges[i + 1]) / 2).toFixed(2));
+  const colors = labels.map(l => Math.abs(parseFloat(l)) > hist.threshold ? '#ff5c7a' : '#4f7cff');
+
+  histChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ label: 'liczba probek', data: hist.counts, backgroundColor: colors }],
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'z-score gradientu (srodek binu)', color: '#9aa4b2' }, ticks: { color: '#9aa4b2', maxTicksLimit: 20 }, grid: { color: '#1f2738' } },
+        y: { title: { display: true, text: 'liczba probek', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+async function loadComparison() {
+  const windowVal = document.getElementById('window').value;
+  const thresholdVal = document.getElementById('threshold').value;
+  const statusEl = document.getElementById('cmpStatus');
+  statusEl.textContent = 'Porownuje...';
+  try {
+    const resp = await fetch(`/scenarios/compare?window=${encodeURIComponent(windowVal)}&threshold=${encodeURIComponent(thresholdVal)}`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || 'Blad serwera');
+    }
+    const data = await resp.json();
+    statusEl.textContent = `Gotowe (window=${data.window}, threshold=${data.threshold}).`;
+
+    const ctx = document.getElementById('cmpChart').getContext('2d');
+    if (cmpChart) cmpChart.destroy();
+    cmpChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.scenarios.map(s => s.label),
+        datasets: [{ label: 'Punkty Model J', data: data.scenarios.map(s => s.model_j_count), backgroundColor: '#ff9a5c' }],
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          x: { ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+          y: { title: { display: true, text: 'liczba punktow Model J', color: '#9aa4b2' }, ticks: { color: '#9aa4b2' }, grid: { color: '#1f2738' } },
+        },
+        plugins: { legend: { display: false } },
+      },
+    });
+
+    const tbody = document.getElementById('cmpTableBody');
+    tbody.innerHTML = data.scenarios.map(s => `<tr>
+      <td>${s.label}</td><td>${s.n_samples}</td>
+      <td>${s.lambda.toFixed(4)}</td><td>${s.tau.toFixed(4)}</td><td>${s.rho.toFixed(4)}</td>
+      <td>${s.model_j_count}</td>
+    </tr>`).join('');
+    document.getElementById('cmpTable').style.display = 'table';
+  } catch (e) {
+    statusEl.textContent = 'Blad: ' + e.message;
+  }
+}
+
+document.getElementById('cmpBtn').addEventListener('click', loadComparison);
+
+loadScenarios();
+
 document.getElementById('cancel').addEventListener('click', () => {
   if (currentAbort) currentAbort.abort();
   resetGoButton();
@@ -205,7 +385,8 @@ document.getElementById('go').addEventListener('click', async () => {
   if (fileInput.files.length > 0) {
     form.append('file', fileInput.files[0]);
   } else {
-    form.append('use_example', 'true');
+    const scenarioVal = document.getElementById('scenario').value || 'baseline';
+    form.append('scenario', scenarioVal);
   }
   if (datasetVal) form.append('dataset', datasetVal);
   form.append('window', windowVal);
@@ -225,7 +406,10 @@ document.getElementById('go').addEventListener('click', async () => {
     const data = await resp.json();
     renderChart(data);
     renderDriftChart(data);
+    renderSpectrumChart(data);
+    renderHistChart(data);
     setHdf5Info(data);
+    setScenarioInfo(data);
     document.getElementById('description').textContent = data.description;
     setStatus(`Gotowe: ${data.n_samples} probek, ${data.model_j_points.length} punktow skretu.`);
   } catch (e) {

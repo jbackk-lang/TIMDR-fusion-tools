@@ -175,3 +175,96 @@ def test_data_dir_served_for_example_downloads():
     assert resp.status_code == 200
     resp2 = client.get("/data/w7x_mirnov_example.csv")
     assert resp2.status_code == 200
+
+
+def test_scenarios_endpoint_lists_five_scenarios():
+    resp = client.get("/scenarios")
+    assert resp.status_code == 200
+    body = resp.json()
+    ids = {s["id"] for s in body["scenarios"]}
+    assert ids == {"baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"}
+    for s in body["scenarios"]:
+        assert s["label"]
+        assert s["description"]
+
+
+def test_analyze_with_scenario_param_baseline_matches_use_example():
+    resp_scenario = client.post("/analyze", data={"scenario": "baseline", "window": 64, "threshold": 2.0})
+    resp_legacy = client.post("/analyze", data={"use_example": "true", "window": 64, "threshold": 2.0})
+    assert resp_scenario.status_code == resp_legacy.status_code == 200
+    assert resp_scenario.json()["signal"] == resp_legacy.json()["signal"]
+
+
+def test_analyze_with_unknown_scenario_returns_400():
+    resp = client.post("/analyze", data={"scenario": "does_not_exist"})
+    assert resp.status_code == 400
+    assert "does_not_exist" in resp.json()["detail"]
+
+
+def test_analyze_with_quiet_scenario_runs_and_includes_scenario_metadata():
+    resp = client.post("/analyze", data={"scenario": "quiet", "window": 32, "threshold": 2.0})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["scenario"]["id"] == "quiet"
+    assert body["scenario"]["source"] == "synthetic"
+
+
+def test_analyze_response_includes_spectrum():
+    resp = client.post("/analyze", data={"use_example": "true", "window": 64, "threshold": 2.0})
+    assert resp.status_code == 200
+    spectrum = resp.json()["spectrum"]
+    assert len(spectrum["freq"]) == len(spectrum["magnitude"])
+    assert len(spectrum["freq"]) > 0
+    # the baseline signal has a real 17 Hz component - the spectrum's peak
+    # magnitude should land near a frequency bin close to it.
+    freqs = spectrum["freq"]
+    mags = spectrum["magnitude"]
+    peak_freq = freqs[mags.index(max(mags))]
+    assert any(abs(peak_freq - f) < 1.0 for f in (3.0, 17.0))
+
+
+def test_analyze_response_includes_model_j_zscore_histogram():
+    resp = client.post("/analyze", data={"use_example": "true", "window": 64, "threshold": 2.0})
+    assert resp.status_code == 200
+    hist = resp.json()["model_j_zscore_hist"]
+    assert hist["is_flat"] is False
+    assert len(hist["bin_edges"]) == len(hist["counts"]) + 1
+    assert sum(hist["counts"]) == 2000
+    assert hist["threshold"] == 2.0
+
+
+def test_analyze_model_j_zscore_histogram_flat_for_constant_signal():
+    csv_bytes = b"time,signal\n" + b"\n".join(f"{i},5.0".encode() for i in range(20))
+    files = {"file": ("flat.csv", io.BytesIO(csv_bytes), "text/csv")}
+    resp = client.post("/analyze", data={"window": 4}, files=files)
+    assert resp.status_code == 200
+    hist = resp.json()["model_j_zscore_hist"]
+    assert hist["is_flat"] is True
+    assert hist["counts"] == []
+
+
+def test_scenarios_compare_endpoint_returns_all_scenarios():
+    resp = client.get("/scenarios/compare", params={"window": 64, "threshold": 2.0})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["window"] == 64
+    assert body["threshold"] == 2.0
+    ids = {s["id"] for s in body["scenarios"]}
+    assert ids == {"baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"}
+    for s in body["scenarios"]:
+        assert set(["id", "label", "n_samples", "lambda", "tau", "rho", "model_j_count"]) <= set(s.keys())
+    # Sanity check on a real, slightly counterintuitive statistical fact
+    # (this is exactly the "don't trust a raw threshold count without a
+    # background comparison" lesson this whole ecosystem's anti-numerology
+    # protocol is built around): 'quiet' is pure Gaussian noise, so
+    # Model J's |z|>2 threshold flags ~4-5% of samples by chance alone
+    # (n=2000 -> roughly 60-140). 'single_burst' has ONE huge injected
+    # event, which inflates std(gradient) used to normalize the z-score,
+    # which in turn SUPPRESSES ordinary noise-driven false positives
+    # elsewhere in that signal - so single_burst's raw count is actually
+    # smaller than quiet's, even though single_burst is the one with a
+    # real injected event. The point isn't "more detections = more real
+    # events"; it's that raw counts need this kind of context.
+    by_id = {s["id"]: s for s in body["scenarios"]}
+    assert 40 <= by_id["quiet"]["model_j_count"] <= 160
+    assert by_id["single_burst"]["model_j_count"] < by_id["quiet"]["model_j_count"]
