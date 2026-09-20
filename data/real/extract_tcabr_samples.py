@@ -41,10 +41,15 @@ Co robi:
        (bo to ciekawszy test niz same podobne przypadki), inaczej po
        prostu pierwsze N.
     5. Dla kazdego wybranego strzalu: wyciaga jeden kanal Mirnova (patrz
-       --mirnov-channel) + os czasu, zapisuje jako
-       data/real/tcabr_shot_<id>_<channel>.csv (naglowek: time,signal) -
-       oraz zbiorczy data/real/tcabr_samples_metadata.json z prawdziwa
-       proweniencja (shot id, kanal, etykieta jesli znana, zrodlo/DOI).
+       --mirnov-channel) + JEGO WLASNA os czasu (KAZDY kanal w TCABR ma
+       osobna os czasu - potwierdzone i uwzglednione tez przez
+       tcabr_tools.py, wiec NIE zaklada sie jednej wspolnej zmiennej
+       "time" per grupa/strzal - patrz _find_channel_time() nizej),
+       zapisuje jako data/real/tcabr_shot_<id>_<channel>.csv
+       (naglowek: time,signal) - oraz zbiorczy
+       data/real/tcabr_samples_metadata.json z prawdziwa proweniencja
+       (shot id, kanal, jak znaleziono os czasu, etykieta jesli znana,
+       zrodlo/DOI).
 
 Po wygenerowaniu plikow: dodaj je jako scenariusz(e) w
 demo/scenarios.py z source="real:tcabr" (patrz komentarz w tym pliku),
@@ -63,7 +68,27 @@ SOURCE_URL = "https://zenodo.org/records/21843354"
 # Nazwy zmiennych zgodnie z opisem datasetu na Zenodo (tabela "Diagnostic
 # Alias") - do weryfikacji przy pierwszym uruchomieniu przez --inspect-only.
 MIRNOV_CHANNELS = [f"BbMirnovN{i:02d}" for i in range(1, 21)]
-TIME_CANDIDATES = ["time", "t", "Time", "TIME"]
+
+# KAZDY kanal w TCABR ma WLASNA, osobna os czasu (potwierdzone; tak samo
+# zaklada dolaczone do datasetu tcabr_tools.py) - NIE ma jednej wspolnej
+# zmiennej "time" per grupa/strzal, ktorej mozna by uzyc dla dowolnego
+# kanalu. _find_channel_time() nizej szuka osi czasu SPECYFICZNEJ dla
+# danego kanalu, w tej kolejnosci:
+#   1. standardowa konwencja NetCDF/CF: zmienna wspoldzielaca nazwe z
+#      wymiarem (dimension) danego kanalu jest jego zmienna wspolrzednych
+#      (coordinate variable) - to najbardziej wiarygodne zrodlo, bo nie
+#      zaleza od konkretnej konwencji nazewnictwa tego datasetu.
+#   2. atrybut "coordinates" na zmiennej kanalu (konwencja CF) - jesli
+#      wskazuje na zmienna czasu, uzyj jej.
+#   3. nazwy odgadywane z nazwy kanalu (np. "BbMirnovN01_time",
+#      "time_BbMirnovN01", "BbMirnovN01Time") - fallback, jesli 1-2 zawioda.
+CHANNEL_TIME_NAME_PATTERNS = [
+    "{ch}_time", "{ch}Time", "time_{ch}", "t_{ch}", "{ch}_t",
+]
+# Ostateczny fallback: wspolna zmienna czasu per grupa (na wypadek, gdyby
+# jednak niektore kanaly ja mialy, mimo ogolnej zasady powyzej).
+SHARED_TIME_CANDIDATES = ["time", "t", "Time", "TIME"]
+
 DISRUPTIVE_FLAG_CANDIDATES = [
     "disruptive", "is_disruptive", "disruption", "disrupted", "label", "class",
 ]
@@ -111,6 +136,45 @@ def _find_var(group, candidates):
         if cand in group.variables:
             return cand
     return None
+
+
+def _find_channel_time(group, channel):
+    """
+    Znajduje os czasu SPECYFICZNA dla danego kanalu (potwierdzone: w TCABR
+    kazdy kanal ma wlasna, osobna os czasu - tak samo zaklada tcabr_tools.py
+    - patrz komentarz przy CHANNEL_TIME_NAME_PATTERNS na gorze pliku).
+    Zwraca (nazwa_zmiennej_lub_None, "jak_znaleziono").
+    """
+    var = group.variables[channel]
+
+    # 1. konwencja NetCDF/CF: zmienna wspoldzielaca nazwe z wymiarem tego
+    #    kanalu jest jego zmienna wspolrzednych - najbardziej wiarygodne,
+    #    bo nie zalezy od konwencji nazewnictwa TEGO konkretnego datasetu.
+    for dim_name in var.dimensions:
+        if dim_name in group.variables and dim_name != channel:
+            return dim_name, f"coordinate-variable-for-dim:{dim_name}"
+
+    # 2. atrybut "coordinates" (konwencja CF)
+    coords_attr = getattr(var, "coordinates", None)
+    if coords_attr:
+        for cand in str(coords_attr).split():
+            if cand in group.variables and cand != channel:
+                return cand, f"coordinates-attr:{cand}"
+
+    # 3. nazwy odgadywane z nazwy kanalu
+    for pattern in CHANNEL_TIME_NAME_PATTERNS:
+        cand = pattern.format(ch=channel)
+        if cand in group.variables:
+            return cand, f"name-pattern:{cand}"
+
+    # 4. ostateczny fallback: wspolna zmienna czasu per grupa (na wypadek
+    #    gdyby TEN kanal jednak ja mial, mimo ze regula ogolna mowi, ze
+    #    kazdy kanal ma wlasna)
+    shared = _find_var(group, SHARED_TIME_CANDIDATES)
+    if shared is not None:
+        return shared, f"shared-fallback:{shared}"
+
+    return None, None
 
 
 def select_shots(root, n_samples):
@@ -185,18 +249,18 @@ def extract_shot(root, shot_id, mirnov_channel, out_dir):
         )
     signal = np.asarray(g.variables[channel][...], dtype=float)
 
-    time_name = _find_var(g, TIME_CANDIDATES)
+    time_name, how_found = _find_channel_time(g, channel)
     if time_name is not None:
         time = np.asarray(g.variables[time_name][...], dtype=float)
-        time_source = f"dataset:{time_name}"
+        time_source = f"dataset:{time_name} ({how_found})"
     else:
-        # brak jawnej zmiennej czasu w tej grupie - uzyj indeksow probek,
+        # brak jawnej osi czasu dla TEGO kanalu - uzyj indeksow probek,
         # jawnie to oznacz (dokladnie ten sam wzorzec co
         # parsers/hdf5_parser.py + _select_hdf5_time_signal() w api.py dla
         # wgrywanych plikow HDF5 bez datasetu czasu)
         time = np.arange(len(signal), dtype=float)
-        time_source = "synthetic_index (brak jawnej zmiennej czasu w tej grupie)"
-        print(f"  UWAGA shot {shot_id}: {time_source}")
+        time_source = "synthetic_index (brak osi czasu dla tego kanalu)"
+        print(f"  UWAGA shot {shot_id}/{channel}: {time_source}")
 
     if len(time) != len(signal):
         raise RuntimeError(
