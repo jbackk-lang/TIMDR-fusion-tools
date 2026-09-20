@@ -68,9 +68,57 @@ zaklocenia, ale gubi sie to wsrod setek innych wykryc, a trzeci strzal
 postaci) nie jest wiarygodnym detektorem zaklocen na prawdziwych danych
 bez powazniejszego przetworzenia wstepnego (usuniecie artefaktow
 digitizera, normalizacja lokalna/w oknie zamiast globalnej na caly
-przebieg). To NIE zostalo tu naprawione, zeby wynik nie byl dostrajany po
-fakcie (dokladnie to, przed czym przestrzega protokol anty-numerologiczny
-reszty ekosystemu TIMDR) - zaraportowane wprost jako ograniczenie.
+przebieg).
+
+### Czy dalo sie to naprawic? Tak - probowano, uczciwy wynik prob
+
+Zostawienie artefaktu digitizera bez probowania go usunac bylo bledem -
+to nie jest niejednoznaczna decyzja naukowa, tylko rozpoznany blad
+instrumentu (jedna probka, stan przed-wyzwalaczem), ktorego wykluczenie
+jest standardowym, uzasadnionym czyszczeniem danych, a nie "dostrajaniem
+wyniku po fakcie". Sprawdzono to wprost, trzema kolejnymi podejsciami,
+na wszystkich 5 strzalach (3 zaklocajace + 2 normalne, kanal `IPlasma`):
+
+1. **Globalny z-score, ale odporny (mediana/MAD zamiast sredniej/std)**
+   zamiast zwyklego std - jeszcze gorzej: nadal **0/3** trafien w
+   zaklocenia, a falszywych wykryc na normalnych strzalach przybywa
+   (368-2071 zamiast 6-13 przy zwyklym std). Pojedynczy artefakt to nie
+   jedyny problem - jedna globalna skala na caly ~45-50 tys.-probkowy
+   przebieg jest zbyt gruboziarnista niezaleznie od tego, jak liczona.
+2. **Lokalny z-score w oknie przesuwnym** (mediana/MAD w oknie
+   300-3000 probek zamiast jednej wartosci na caly przebieg) - to
+   faktycznie dziala w sensie detekcji: setki probek oznaczonych w
+   promieniu 2ms od prawdziwego czasu zaklocenia w KAZDYM z 3 strzalow
+   zaklocajacych (0 takich trafien przy podejsciu globalnym). Potwierdza
+   to wprost diagnoze, ze pojedyncza globalna normalizacja to gniezdzcy
+   sie w Modelu J blad projektowy, nie tylko kwestia jednego artefaktu.
+3. **Ale**: to samo podejscie lokalne psuje sie numerycznie na tym
+   konkretnym przebiegu - sygnal jest dosc grubo skwantowany przez
+   digitizer, wiec w wielu oknach mediana odchylenia bezwzglednego (MAD)
+   gradientu wychodzi (prawie) dokladnie zero (plaskie odcinki
+   identycznych wartosci), co przy dzieleniu daje z-score rzedu
+   milionow-bilionow zamiast sensownej liczby - probowano to
+   zabezpieczyc trzema roznymi wariantami progu podlogowego (wzgledny
+   epsilon, prog wzgledny do lokalnej skali, wygladzenie sygnalu przed
+   rozniczkowaniem + prog wzgledny do lokalnej mediany) - zaden nie dal
+   liczbowo wiarygodnego wyniku, mimo ze w 2 z 3 przypadkow lokalizacja w
+   czasie wychodzila bliska prawdziwego zaklocenia. Zgloszenie takiego
+   wyniku jako "naprawionego" bylby dokladnie tym, przed czym przestrzega
+   protokol anty-numerologiczny: poprawny-z-wygladu wynik zbudowany na
+   zepsutym obliczeniu.
+
+**Co z tego wynika praktycznie**: Model J (prosty, ogolny detektor
+statystyczny) NIE jest wlasciwym narzedziem do tego konkretnego zadania
+na tym konkretnym instrumencie bez dalszej, powazniejszej pracy
+(np. lokalna skala odporna na kwantyzacje, winsoryzacja zamiast MAD, albo
+dedykowany filtr dopasowany do ksztaltu zaniku pradu). Repozytorium ma
+juz jednak dzialajacy, zwalidowany detektor do tego konkretnego zadania -
+to wlasnie kryterium 2 (spadek pradu >30% w oknie 5ms) uzyte wyzej do
+policzenia `disruption_time_s`, ktore poprawnie i niezaleznie odtworzylo
+kolejnosc early/typical/late. Dla realnych zaklocen plazmy to ono jest
+wlasciwym narzedziem, nie Model J - to zostaje udokumentowane wprost
+zamiast dalej "lataniowac" ogolnego detektora do jednego szczegolnego
+przypadku.
 
 ## Jak dodac wiecej realnych strzalow
 

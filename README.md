@@ -1,15 +1,8 @@
-https://jbackk-lang.github.io/
-
 # fusion-tools
 
 Narzędzia do analizy sygnałów z diagnostyki plazmy (W7-X, JET, DIII-D, EAST)
 oparte na TIMDR (redukcja informacji), Λ-τ-ρ (metryki strukturalne
 sygnału) oraz Model J (detekcja punktów skrętu).
-
-> **Status repozytorium (sierpień 2026):** ten plik i kod zostały właśnie
-> uporządkowane po audycie, który znalazł kilka realnych błędów (patrz
-> sekcja "Historia poprawek" na końcu). Wszystko poniżej opisuje kod
-> **po** poprawkach.
 
 ---
 
@@ -20,8 +13,9 @@ sygnału) oraz Model J (detekcja punktów skrętu).
 - detekcja punktów skrętu / gwałtownych zmian dynamiki (Model J),
 - wczytywanie danych w formatach używanych w fuzji (CSV, HDF5, MDSplus).
 
-To repozytorium **nie zawiera** prawdziwych danych z żadnego urządzenia
-fuzyjnego — przykładowy sygnał jest syntetyczny (patrz niżej).
+Domyślny przykładowy sygnał (`data/w7x_mirnov_example.csv`) jest
+syntetyczny. Repozytorium zawiera też realne dane (TCABR) — patrz sekcja
+"Realne dane (TCABR)" niżej.
 
 ---
 
@@ -32,7 +26,8 @@ fusion-tools/
 ├── data/                       # przykładowy syntetyczny sygnał + metadane
 │   ├── w7x_mirnov_example.csv
 │   ├── w7x_mirnov_example.h5   # to samo co CSV, jako HDF5 (datasety "time"/"signal")
-│   └── example_metadata.json
+│   ├── example_metadata.json
+│   └── real/                   # realne dane (TCABR) — patrz niżej
 ├── parsers/                    # wczytywanie danych: CSV, HDF5, MDSplus
 │   ├── csv_parser.py
 │   ├── hdf5_parser.py
@@ -45,11 +40,12 @@ fusion-tools/
 │   └── latro_features.py
 ├── model_j/                    # detekcja punktów skrętu
 │   └── model_j_detector.py
-├── demo/                       # działające demo (skrypt + notebook)
+├── demo/                       # scenariusze demo + działające demo (skrypt + notebook)
+│   ├── scenarios.py
 │   ├── run_demo.py
 │   └── fusion_demo.ipynb
 ├── api.py                      # FastAPI backend dla dashboardu
-├── static/index.html           # dashboard (Chart.js, jeden plik)
+├── static/                     # dashboard (Chart.js zvendorowany lokalnie w static/vendor/)
 ├── run.bat                     # launcher dla Windows (venv + pip + uvicorn)
 ├── tests/                      # pytest
 └── requirements.txt
@@ -78,9 +74,10 @@ deweloperskim).
 
 ## Dashboard
 
-Prosty webowy dashboard (jeden plik HTML + Chart.js z CDN, bez build-stepu)
-nad tym samym pipeline'em, z wgrywaniem własnego pliku (CSV **lub HDF5**)
-albo przykładowego sygnału.
+Webowy dashboard (FastAPI + Chart.js, zvendorowany lokalnie w
+`static/vendor/` — działa bez internetu) nad tym samym pipeline'em, z
+wyborem scenariusza demo, wgrywaniem własnego pliku (CSV lub HDF5), albo
+realnych danych TCABR.
 
 **Windows:** dwuklik na `run.bat` — tworzy `.venv`, instaluje zależności,
 startuje serwer i otwiera przeglądarkę.
@@ -97,9 +94,9 @@ uvicorn api:app --reload
 
 Co pokazuje dashboard:
 
-1. **Wykres sygnału** — oryginał razem ze zredukowanym TIMDR (na poprawnie
-   wyskalowanej osi czasu — patrz punkt 4 w "Historii poprawek") i
-   zaznaczonymi punktami skrętu Modelu J.
+1. **Wykres sygnału** — oryginał razem ze zredukowanym TIMDR (na wspólnej,
+   poprawnie wyskalowanej osi czasu) i zaznaczonymi punktami skrętu
+   Modelu J.
 2. **Dryf Λ-τ-ρ** — drugi wykres (słupkowy), pokazujący Λ, τ, ρ liczone
    **osobno w każdym kolejnym oknie** (`latro_windowed()` w
    `latro_core.py`, ten sam podział na okna co `timdr()`), zamiast jednej
@@ -125,39 +122,34 @@ Co pokazuje dashboard:
 
 ### Scenariusze demo
 
-Zamiast jednego wbudowanego sygnału, dashboard ma selektor z pięcioma
-**syntetycznymi** scenariuszami (`demo/scenarios.py`, `GET /scenarios`):
+Dashboard ma selektor scenariuszy zamiast jednego wbudowanego sygnału
+(`demo/scenarios.py`, `GET /scenarios`). Pięć jest **syntetycznych**:
 
 | id | Co pokazuje |
 |---|---|
-| `baseline` | Domyślny przykład: 2 sinusoidy + 3 wstrzyknięte zdarzenia (bez zmian względem dotychczasowego `data/w7x_mirnov_example.csv`). |
+| `baseline` | Domyślny przykład: 2 sinusoidy + 3 wstrzyknięte zdarzenia (`data/w7x_mirnov_example.csv`). |
 | `quiet` | Kontrolka negatywna: prawie płaski sygnał, zero wstrzykniętych zdarzeń. |
 | `single_burst` | Cichy sygnał + jedno silne, izolowane zdarzenie. |
 | `growing_mode` | Oscylacja o amplitudzie rosnącej wykładniczo (dobry przykład na wykres dryfu ρ). |
 | `noisy_flat` | Sam szum, większa amplituda niż `quiet`, zero struktury. |
 
-**Uczciwa, trochę nieoczywista obserwacja z panelu porównania** (dokładnie
-ten rodzaj rzeczy, przed którą przestrzega protokół anty-numerologiczny
-reszty ekosystemu TIMDR): przy domyślnym progu 2.0 `quiet` (sam szum, ZERO
-prawdziwych zdarzeń) daje ok. 90-100 "wykryć" Modelu J na 2000 próbek — to
-statystyczny efekt progowania z-score na czystym szumie (oczekiwane ~4.5%
-przy |z|>2), nie błąd. `single_burst` (JEDNO prawdziwe, silne zdarzenie)
-daje ich zaskakująco MNIEJ (~13), bo pojedynczy duży skok podbija
-odchylenie standardowe gradientu użyte do normalizacji z-score, co tłumi
-detekcje szumu tła gdzie indziej w tym samym sygnale. Wniosek: surowa
-liczba wykryć Modelu J bez takiego kontekstu nic nie mówi o tym, czy
-sygnał ma prawdziwą strukturę — patrz `tests/test_api.py::test_scenarios_compare_endpoint_returns_all_scenarios`.
+Kolejnych 15 to realne dane TCABR (`tcabr_<shot>_<kanał>`) — patrz sekcja
+"Realne dane (TCABR)" niżej.
 
-Miejsce na realne dane w przyszłości: jeśli pojawi się prawdziwy wycinek
-sygnału (np. z otwartego zbioru
-[TCABR na Zenodo](https://zenodo.org/records/21843354) — prawdziwe cewki
-Mirnova, CC-BY 4.0), `demo/scenarios.py` ma to opisane wprost jako miejsce
-do dodania kolejnego wpisu z `source="real:..."` zamiast `"synthetic"`.
+**Obserwacja z panelu porównania**: przy domyślnym progu 2.0 `quiet` (sam
+szum, ZERO prawdziwych zdarzeń) daje ok. 90-100 "wykryć" Modelu J na 2000
+próbek — to statystyczny efekt progowania z-score na czystym szumie
+(oczekiwane ~4.5% przy |z|>2), nie błąd. `single_burst` (JEDNO prawdziwe,
+silne zdarzenie) daje ich zaskakująco MNIEJ (~13), bo pojedynczy duży
+skok podbija odchylenie standardowe gradientu użyte do normalizacji
+z-score, co tłumi detekcje szumu tła gdzie indziej w tym samym sygnale.
+Wniosek: surowa liczba wykryć Modelu J bez takiego kontekstu nic nie mówi
+o tym, czy sygnał ma prawdziwą strukturę — patrz
+`tests/test_api.py::test_scenarios_compare_endpoint_returns_all_scenarios`.
 
-Panel ma też przycisk "Anuluj" (ten sam wzorzec co w innych dashboardach w
-tej organizacji: `AbortController` po stronie przeglądarki + limit
-rozmiaru sygnału po stronie serwera — `MAX_SAMPLES = 200 000` w `api.py` —
-żeby duży plik nie zawiesił karty przeglądarki).
+Panel ma też przycisk "Anuluj" (`AbortController` po stronie przeglądarki
++ limit rozmiaru sygnału po stronie serwera — `MAX_SAMPLES = 200 000` w
+`api.py` — żeby duży plik nie zawiesił karty przeglądarki).
 
 **Wgrywanie HDF5:** HDF5 nie ma ustalonej konwencji "pierwsza kolumna to
 czas" jak CSV, więc `api.py` szuka datasetów nazwanych `time`/`t`/`czas`
@@ -171,39 +163,15 @@ HDF5" (parametr `dataset` w API). Do testów jest w repo gotowy
 `data/w7x_mirnov_example.h5` (ten sam sygnał co CSV, datasety `time` i
 `signal`) — dashboard ma link do jego pobrania.
 
-Przykładowy wynik na wbudowanym sygnale syntetycznym (`window=64`,
-`threshold=2.0`, zweryfikowane live przez `POST /analyze`):
-
-```
-n_samples: 2000 -> 32 (po TIMDR)
-Λ (lambda): 1.9562   τ (tau): 0.3294   ρ (rho): 0.1421
-Model J: 74 probki powyzej progu (3.7%), w 11 odrebnych miejscach w czasie
-
-Opis wyniku (generowany automatycznie):
-"Sygnal ma 2000 probek, zredukowanych przez TIMDR do 32 (okno=64).
-Wartosci miesza sie w zakresie od -0.718 do 1.238 (Lambda = 1.956,
-tau = 0.3294, rho = 0.1421). Model J wykryl 74 probek powyzej progu
-(3.7% wszystkich probek), skupionych w 11 miejscach w czasie
-(kilkanascie odrebnych zdarzen): ~t=0.124..0.21, ~t=0.401..0.565,
-~t=0.64..0.653, ~t=0.739..0.761, ~t=0.848 i 6 innych miejscach. Energia
-sygnalu (rho) liczona osobno w kolejnych oknach jest wzglednie stabilna
-w czasie. Uwaga: to automatyczny, czysto statystyczny opis (bez
-interpretacji fizycznej MHD) - patrz sekcja "Zakres i ograniczenia"
-w README."
-```
-
-(11 klastrów punktów, nie 3 — to oczekiwane: próg `threshold=2.0` łapie
-też mniejsze, naturalne wahania gradientu z szumu w sygnale, nie tylko 3
-celowo wstrzyknięte zdarzenia. Podniesienie progu w dashboardzie to
-ograniczy.)
-
 Endpointy API:
 
 | Endpoint | Metoda | Opis |
 |---|---|---|
 | `/` | GET | dashboard |
 | `/example` | GET | metadane wbudowanego przykładowego sygnału |
-| `/analyze` | POST | uruchamia pipeline; pola formularza: `file` (CSV lub HDF5, opcjonalny), `use_example` (bool), `window`, `threshold`, `drop_last`, `dataset` (nazwa datasetu HDF5, opcjonalna) |
+| `/analyze` | POST | uruchamia pipeline; pola formularza: `file` (CSV lub HDF5, opcjonalny), `scenario` (id z `/scenarios`, używany gdy nie wgrano pliku), `use_example` (bool, alias na scenariusz `baseline`), `window`, `threshold`, `drop_last`, `dataset` (nazwa datasetu HDF5, opcjonalna) |
+| `/scenarios` | GET | lista dostępnych scenariuszy demo (`id`, `label`, `description`) |
+| `/scenarios/compare` | GET | Λ-τ-ρ i liczba punktów Modelu J dla wszystkich scenariuszy naraz (parametry `window`, `threshold`) |
 | `/data/...` | GET | statyczny dostęp do plików w `data/` (np. pobranie przykładowego `.h5`) |
 
 Odpowiedź `/analyze` zawiera dodatkowo: `latro_windowed` (`{x, lambda,
@@ -213,18 +181,6 @@ DC), `model_j_zscore_hist` (`{bin_edges, counts, is_flat, threshold}`),
 demo — tylko gdy nie wgrano pliku) oraz — tylko dla wgranego HDF5 —
 `hdf5_info` (`available_datasets`, `signal_dataset`, `time_dataset`,
 `time_source`, `ambiguous`).
-
-Dodatkowe endpointy:
-
-| Endpoint | Metoda | Opis |
-|---|---|---|
-| `/scenarios` | GET | lista dostępnych scenariuszy demo (`id`, `label`, `description`) |
-| `/scenarios/compare` | GET | Λ-τ-ρ i liczba punktów Modelu J dla wszystkich scenariuszy naraz (parametry `window`, `threshold`) |
-
-`/analyze` przyjmuje teraz dodatkowo pole formularza `scenario` (id z
-`/scenarios`) — używane, gdy nie wgrano pliku. `use_example=true` bez
-`scenario` nadal działa dokładnie jak dawniej (alias na scenariusz
-`baseline`, ten sam plik CSV).
 
 ---
 
@@ -242,9 +198,8 @@ Dodatkowe endpointy:
 
 `timdr(signal, window=64, drop_last=False)` — dzieli sygnał na
 nienakładające się okna po `window` próbek i zwraca średnią każdego okna.
-Domyślnie **zachowuje** ostatnie, niepełne okno jako krótszy ostatni
-element wyniku (patrz "Historia poprawek" — wcześniej był on cicho
-odrzucany). `drop_last=True` przywraca stare zachowanie.
+Domyślnie zachowuje ostatnie, niepełne okno jako krótszy ostatni element
+wyniku. `drop_last=True` odrzuca je zamiast tego.
 
 `plot_timdr(original, reduced, window=64, time=None)` — rysuje sygnał
 oryginalny i zredukowany na wspólnej, poprawnie wyskalowanej osi X.
@@ -262,9 +217,8 @@ fizycznej "transformacji" ani "defektu" w jakimś silniejszym sensie. Nazwy
 Λ/τ/ρ pochodzą z terminologii projektu GIA-TIMDR.
 
 `latro_features(signal)` z `latro_features.py` zwraca to samo jako `dict`
-(`{"lambda": ..., "tau": ..., "rho": ...}`) — jest cienkim wrapperem nad
-`latro()`, żeby nie było dwóch osobnych implementacji do rozjechania się
-(patrz "Historia poprawek").
+(`{"lambda": ..., "tau": ..., "rho": ...}`) — cienki wrapper nad `latro()`,
+żeby była jedna definicja, nie dwie osobne do rozjechania się.
 
 `latro_windowed(signal, window=64, drop_last=False)` — liczy `latro()`
 osobno dla każdego kolejnego okna sygnału (ten sam podział na okna co
@@ -275,10 +229,17 @@ tego, żeby zobaczyć jak Λ-τ-ρ **zmieniają się w czasie**, nie tylko ich
 
 ### `model_j/`
 
-`model_j(signal, threshold=2.0)` — liczy gradient sygnału, standaryzuje go
-(z-score) i zwraca indeksy próbek, gdzie `|z| > threshold`. To detektor
-lokalnych, gwałtownych zmian gradientu ("punktów skrętu"), a nie detektor
-lokalnych maksimów.
+`gradient_zscore(signal)` — liczy gradient sygnału i zwraca jego z-score
+(`(grad - mean) / std`), z zabezpieczeniem przed dzieleniem przez zero
+(albo przez bardzo małą liczbę rzędu szumu zmiennoprzecinkowego) dla
+sygnału stałego lub idealnie liniowego — zwraca wtedy pustą tablicę
+zamiast fałszywych detekcji. Jedyna definicja z-score w repo — używana i
+przez `model_j()`, i przez histogram w dashboardzie.
+
+`model_j(signal, threshold=2.0)` — cienki wrapper nad `gradient_zscore()`:
+zwraca indeksy próbek, gdzie `|z| > threshold`. To detektor lokalnych,
+gwałtownych zmian gradientu ("punktów skrętu"), a nie detektor lokalnych
+maksimów.
 
 ---
 
@@ -329,19 +290,17 @@ print("Punkty Modelu J:", list(points)[:10])
 pytest tests/ -v
 ```
 
-Testy obejmują: poprawność `latro()`/`latro_features()`/`latro_windowed()`
-(w tym regresję na wcześniejszą niespójność definicji), zabezpieczenie
-`model_j()` przed dzieleniem przez zero, zachowanie ostatniego niepełnego
-okna w `timdr()`, wczytywanie CSV pod poprawną ścieżką importu, pełny
-pipeline end-to-end na przykładowym sygnale (sprawdza, że Model J
-faktycznie wykrywa 3 wstrzyknięte zdarzenia), oraz endpointy API
-(`tests/test_api.py` — `/analyze` na przykładzie, na wgranym CSV i na
-wgranym HDF5 z kilkoma wariantami wyboru datasetu, limit rozmiaru,
-odrzucanie nieobsługiwanych rozszerzeń, obecność `latro_windowed` i
-`description` w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`),
-oraz (jeśli lokalnie obecne realne dane TCABR — patrz niżej)
-`tests/test_real_tcabr.py`. 102/102 testów przechodzi (88 bez realnych
-danych TCABR, które nie są wymagane do reszty pakietu).
+Testy obejmują: poprawność `latro()`/`latro_features()`/`latro_windowed()`,
+zabezpieczenie `model_j()`/`gradient_zscore()` przed dzieleniem przez
+zero, zachowanie ostatniego niepełnego okna w `timdr()`, wczytywanie CSV,
+pełny pipeline end-to-end na przykładowym sygnale (sprawdza, że Model J
+faktycznie wykrywa 3 wstrzyknięte zdarzenia), endpointy API
+(`tests/test_api.py` — `/analyze` na przykładzie/scenariuszu/wgranym
+CSV/HDF5, limit rozmiaru, odrzucanie nieobsługiwanych rozszerzeń,
+obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
+w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
+lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py`. 102/102
+testów przechodzi (88 bez danych TCABR, które są opcjonalne/lokalne).
 
 ---
 
@@ -350,12 +309,17 @@ danych TCABR, które nie są wymagane do reszty pakietu).
 `data/real/` zawiera 15 PRAWDZIWYCH sygnałów (5 wyładowań × 3 kanały —
 `IPlasma`, `VLoop`, `BbMirnovN01`) z tokamaka TCABR (Zenodo, DOI
 10.5281/zenodo.21843354, CC-BY 4.0), widoczne w dashboardzie jako
-scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. Zawiera też
-uczciwy, nieporawiony po fakcie wynik: na surowym sygnale Model J **nie
-wykrywa żadnego** z 3 prawdziwych, niezależnie wyznaczonych zdarzeń
-zakłóceniowych (artefakt digitizera na starcie zapisu dominuje globalne
-odchylenie standardowe gradientu). Pełny opis w
+scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. Trzy wyładowania są
+zakłócające (z niezależnie wyznaczonym czasem zakłócenia), dwa normalne.
+
+**Wynik testu**: na surowym sygnale Model J **nie wykrywa żadnego** z 3
+prawdziwych zdarzeń zakłóceniowych — artefakt digitizera na starcie
+zapisu (skok -152.6 → 152.5 kA między pierwszymi dwiema próbkami, nie
+fizyka) dominuje globalne odchylenie standardowe gradientu, którego
+Model J używa do całego przebiegu naraz. Pełny opis metody i wyniku w
 [`data/real/README.md`](data/real/README.md).
+
+---
 
 ## Zakres i ograniczenia
 
@@ -375,99 +339,9 @@ odchylenie standardowe gradientu). Pełny opis w
   nieefektywne. Wybór datasetu przy niejednoznacznej nazwie jest
   deterministyczny (alfabetyczny), ale zgadywany — zawsze sprawdź pole
   `hdf5_info`/żółty pasek w dashboardzie, że wybrano właściwy dataset.
-
----
-
-## Historia poprawek (sierpień 2026)
-
-Audyt tego repozytorium znalazł i naprawił:
-
-1. **Trzy wzajemnie niespójne definicje Λ-τ-ρ** — inna w `latro_core.py`
-   (oparta na gradiencie), inna w `latro_features.py` (`tau=std(signal)`),
-   jeszcze inna w kodzie demo w README. Skonsolidowane do jednej definicji
-   (patrz sekcja `latro/` wyżej); `latro_features()` teraz deleguje do
-   `latro()`.
-2. **Dzielenie przez zero w `model_j()`** — dla sygnału stałego
-   `std(gradient) == 0` dokładnie, co dawało `RuntimeWarning: invalid
-   value encountered in divide` i cichy pusty wynik. Dodatkowo dla
-   sygnału idealnie liniowego `std(gradient)` wychodzi rzędu `1e-16`
-   (szum zmiennoprzecinkowy, nie dokładne zero) — dzielenie przez tak
-   małą liczbę wzmacniało ten szum do pozornie dużych z-score i dawało
-   fałszywe detekcje na sygnale, który w rzeczywistości jest płaski.
-   Zabezpieczenie użyte jest teraz progiem względnym do skali gradientu
-   (łapie oba przypadki), zweryfikowane testami regresyjnymi.
-3. **`timdr()` cicho gubił ostatnie, niepełne okno** sygnału. Teraz
-   domyślnie je zachowuje (`drop_last=True` przywraca stare zachowanie).
-4. **`plot_timdr()` rysował zredukowany sygnał na złej osi X** (bez
-   korekty pod downsampling), co dawało mylący wykres. Naprawione.
-5. **Błędna ścieżka importu w README** — dokumentacja mówiła
-   `from parsers.csv_parser import load_csv`, ale plik faktycznie był w
-   `tools/parsers/csv_parser.py` (potwierdzone przez `ModuleNotFoundError`
-   na żywo). Plik przeniesiony do `parsers/csv_parser.py`, zgodnie z
-   dokumentacją i strukturą pozostałych parserów.
-6. **README był wewnętrznie zepsuty**: sekcja "Offline Demo" powielona 4
-   razy z niespójnym kodem, niedomknięte bloki kodu psujące renderowanie
-   na GitHubie, oraz przypadkowo wklejona cała treść README organizacji
-   jbackk-lang wewnątrz README tego repo. Przepisane od zera.
-7. Brak `requirements.txt`, brak działającego notebooka demo (`
-   fusion_demo.ipynb` był pustym/niepoprawnym JSON-em), brak przykładowego
-   pliku sygnału mimo odwołań do niego w README, zero testów — wszystko
-   dodane.
-
-Kolejna runda dodała webowy dashboard (`api.py` + `static/index.html` +
-`run.bat`), a potem — na wyraźną prośbę — trzy rozszerzenia:
-
-8. **Wgrywanie HDF5** w `/analyze`, obok CSV — z jawną (nie cichą) logiką
-   wyboru datasetu czasu/sygnału i przykładowym plikiem
-   `data/w7x_mirnov_example.h5` do testów.
-9. **`latro_windowed()`** — Λ-τ-ρ liczone osobno w każdym oknie zamiast
-   jednej sumarycznej wartości na cały sygnał, pokazane jako drugi wykres
-   (dryf w czasie) w dashboardzie.
-10. **Automatyczny opis wyniku** — deterministyczny tekst po polsku
-    generowany z policzonych statystyk (bez LLM), z jawnym zastrzeżeniem,
-    że to opis statystyczny, nie interpretacja fizyczna.
-
-Zgłoszenie: po `run.bat` przeglądarka "migała i gasła", odświeżanie nic
-nie dawało, "jakby serwer się wyłączał". Diagnoza (`.venv` od
-wcześniejszego uruchomienia było już w repo, więc dało się sprawdzić
-naprawdę zainstalowane wersje zamiast zgadywać — Python 3.11.0, fastapi
-0.141.1, wszystkie zależności obecne i zgodne z tym, co jest testowane w
-CI) wykluczyła "brakującą zależność" jako przyczynę, ale przy okazji
-znalazła dwa realne, niezależne błędy:
-
-11. **`file: UploadFile | None` i `dataset: str | None` w `/analyze`** —
-    składnia `X | None` w adnotacji typu działa tylko na Pythonie 3.10+;
-    na starszym Pythonie `api.py` wywaliłby się `TypeError` **przy
-    starcie**, zanim serwer w ogóle by wstał. Zmienione na
-    `Optional[X]` (`typing`), które działa od Pythona 3.8 — niezależnie
-    od tego, czy to była faktyczna przyczyna zgłoszenia, to realne
-    zawężenie wymagań (repo wymagało 3.10+ bez potrzeby).
-12. **`run.bat` nie miał `pause` po linii z uvicornem** — jeśli serwer
-    wywalał się od razu po starcie, okno konsoli (odpalone dwuklikiem)
-    znikało natychmiast, zanim dało się przeczytać traceback — dokładnie
-    objaw "miga i gaśnie". Dodany bezwarunkowy `pause` na końcu.
-13. **Brak sprawdzenia zajętego portu 8000** — jeśli poprzednie
-    uruchomienie nie zamknęło się czysto (np. zamknięcie okna "krzyżykiem"
-    zamiast Ctrl+C), `python.exe` czasem zostaje jako proces w tle nadal
-    trzymający port. Kolejne uruchomienie wtedy natychmiast wywala się
-    błędem "address already in use" — przeglądarka pokazuje martwą
-    stronę, dokładnie jak "serwer się wyłączył", mimo że nowy serwer nigdy
-    nie wstał. `run.bat` teraz sprawdza to z wyprzedzeniem
-    (`netstat`/`findstr`) i podpowiada jak zabić zawieszony proces zamiast
-    ciszy.
-14. **`from parsers.hdf5_parser import load_hdf5` (a wewnątrz `import
-    h5py`) był twardym importem na górze `api.py`** — gdyby instalacja
-    `h5py` na czyimś Windowsie zawiodła (h5py ma binarne rozszerzenie),
-    cały dashboard, łącznie z obsługą CSV niezwiązaną z h5py, w ogóle by
-    nie wystartował. Import jest teraz w `try/except`; brak/zepsute h5py
-    wyłącza tylko obsługę HDF5 z czytelnym komunikatem 400, reszta działa
-    normalnie. Zweryfikowane symulując brak h5py w teście.
-
-Punkty 11-14 zostały naprawione i zweryfikowane (34/34 testów + symulacja
-brakującego h5py), ale nie udało się jednoznacznie potwierdzić, który z
-nich (jeśli którykolwiek) był rzeczywistą przyczyną zgłoszonego problemu —
-bez dokładnego komunikatu błędu z ekranu użytkownika to najbardziej
-prawdopodobne kandydaci, nie potwierdzona diagnoza.
+- Model J (globalny z-score gradientu) nie jest wiarygodnym detektorem
+  zakłóceń na surowych, prawdziwych danych zawierających artefakty
+  digitizera — patrz "Realne dane (TCABR)" wyżej.
 
 ---
 
