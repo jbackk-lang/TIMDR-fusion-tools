@@ -44,7 +44,11 @@ Kolejnosc wynikow (0.0566s < 0.0746s < 0.1083s) zgadza sie z etykietami
 early/typical/late z nazw plikow `tcabr_tools.py` - niezalezne
 potwierdzenie, ze metoda dziala.
 
-### Uczciwy wynik: Model J na surowym sygnale NIE wykrywa zadnego z 3 realnych zaklocen
+### Uczciwy wynik: Model J w TRYBIE GLOBALNYM nie wykrywa zadnego z 3 realnych zaklocen
+
+(Nizej, w sekcji "Czy dalo sie to naprawic?", jest OSOBNY, lepszy wynik
+dla trybu lokalnego/skalibrowanego - 2/3. Ta sekcja opisuje wylacznie
+domyslny, globalny tryb `gradient_zscore()`.)
 
 To jest udokumentowany, **niepoprawiony po fakcie** wynik (patrz
 `model_j_validation_note` w `tcabr_samples_metadata.json` i
@@ -58,11 +62,17 @@ standardowe gradientu**, ktorego Model J uzywa do calego przebiegu naraz
 - w efekcie na surowych danych (`threshold=2.0`) Model J wykrywa **0 z 3**
 prawdziwych, niezaleznie wyznaczonych zaklocen.
 
-Po recznym odcieciu pierwszych 80us (samego artefaktu) czulosc odwraca
-sie w druga strone: setki wykryc na caly przebieg (zamiast 3) - 2 z 3
-strzalow dostaja wtedy trafienie w promieniu 3ms od prawdziwego czasu
-zaklocenia, ale gubi sie to wsrod setek innych wykryc, a trzeci strzal
-(22201) nie trafia wcale.
+Po recznym odcieciu pierwszych 80us (samego artefaktu, bez zadnej innej
+zmiany) czulosc odwraca sie w druga strone: setki wykryc na caly przebieg
+(zamiast 3) - 2 z 3 strzalow dostaja wtedy trafienie w promieniu 3ms od
+prawdziwego czasu zaklocenia, ale gubi sie to wsrod setek innych wykryc, a
+trzeci strzal (22201) nie trafia wcale. **Uwaga - to INNA proba niz
+skalibrowany tryb lokalny opisany nizej**: to tylko recznie odciety
+artefakt na GLOBALNYM z-score, porzucona jako niewiarygodna (stad
+"Wniosek" ponizej). Ten wynik (2/3, pudlo na 22201) jest inny niz wynik
+skalibrowanego trybu lokalnego (rowniez 2/3, ale pudlo na 20316) -
+przypadkowo ta sama liczba "2/3", ale inna metoda i inny konkretny
+strzal, ktory zawodzi.
 
 **Wniosek**: prosty globalny z-score gradientu (Model J w obecnej
 postaci) nie jest wiarygodnym detektorem zaklocen na prawdziwych danych
