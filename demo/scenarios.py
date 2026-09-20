@@ -27,6 +27,7 @@ demo - nie mieszaj ich w jednym wpisie.
 """
 from __future__ import annotations
 
+import json
 import os
 
 import numpy as np
@@ -35,6 +36,8 @@ import pandas as pd
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(REPO_ROOT, "data")
 BASELINE_CSV = os.path.join(DATA_DIR, "w7x_mirnov_example.csv")
+REAL_DATA_DIR = os.path.join(DATA_DIR, "real")
+TCABR_METADATA_PATH = os.path.join(REAL_DATA_DIR, "tcabr_samples_metadata.json")
 
 
 def _baseline():
@@ -166,6 +169,93 @@ SCENARIOS = {
         "generator": _noisy_flat,
     },
 }
+
+
+def _make_real_csv_generator(csv_path, extra_meta):
+    """Buduje funkcje generujaca dla jednego realnego pliku CSV (2 kolumny:
+    time,signal - ten sam format co reszta repo). `extra_meta` to dict z
+    prawdziwa proweniencja (patrz _load_real_tcabr_scenarios) dolaczany do
+    wyniku bez zmian."""
+
+    def _generator():
+        df = pd.read_csv(csv_path)
+        time = df.iloc[:, 0].to_numpy(dtype=float)
+        signal = df.iloc[:, 1].to_numpy(dtype=float)
+        return time, signal, dict(extra_meta)
+
+    return _generator
+
+
+def _load_real_tcabr_scenarios():
+    """
+    Wczytuje realne (NIE syntetyczne) sygnaly TCABR z data/real/, jesli
+    tam sa (patrz data/real/README.md i extract_tcabr_samples.py) -
+    zamienia data/real/tcabr_samples_metadata.json + towarzyszace CSV na
+    wpisy SCENARIOS, source="real:tcabr" (odroznione od "synthetic" -
+    patrz docstring modulu). Zwraca pusty dict, jesli plik metadanych nie
+    istnieje (normalne - repo dziala bez realnych danych, patrz reszta
+    tego pliku) - blad parsowania jest LOGOWANY, nie wywala calej
+    aplikacji, bo brak/blad w opcjonalnych realnych danych nie powinien
+    psuc syntetycznych demo.
+    """
+    if not os.path.isfile(TCABR_METADATA_PATH):
+        return {}
+
+    try:
+        with open(TCABR_METADATA_PATH, encoding="utf-8") as f:
+            meta = json.load(f)
+    except Exception as exc:  # noqa: BLE001 - opcjonalne dane, nie wywalaj apki
+        print(f"UWAGA: nie udalo sie wczytac {TCABR_METADATA_PATH}: {exc}")
+        return {}
+
+    scenarios = {}
+    for sample in meta.get("samples", []):
+        shot_id = sample["shot_id"]
+        disruptive = sample["disruptive"]
+        dtime = sample.get("disruption_time_s")
+        dmethod = sample.get("disruption_time_method")
+        status_pl = "zaklocajacy (disruptive)" if disruptive else "normalny (non-disruptive)"
+
+        for ch in sample.get("channels", []):
+            channel = ch["channel"]
+            csv_path = os.path.join(REAL_DATA_DIR, ch["file"])
+            if not os.path.isfile(csv_path):
+                print(f"UWAGA: brakuje pliku {csv_path} z metadanych TCABR - pomijam.")
+                continue
+
+            sid = f"tcabr_{shot_id}_{channel}"
+            if dtime is not None:
+                event_txt = f"Realny czas zaklocenia: {dtime:.4f} s ({dmethod})."
+            else:
+                event_txt = "Strzal normalny - brak zaklocenia."
+            validation_note = sample.get("model_j_validation_note", "")
+            description = (
+                f"PRAWDZIWY sygnal {channel} z tokamaka TCABR, strzal {shot_id} "
+                f"({status_pl}). {event_txt} Zrodlo: {sample.get('source', 'TCABR/Zenodo')}."
+                + (f" {validation_note}" if validation_note else "")
+            )
+            extra_meta = {
+                "source": f"real:tcabr:shot_{shot_id}",
+                "generation": description,
+                "shot_id": shot_id,
+                "channel": channel,
+                "disruptive": disruptive,
+                "disruption_time_s": dtime,
+                "disruption_time_method": dmethod,
+                "model_j_validation_note": validation_note,
+            }
+            scenarios[sid] = {
+                "label": f"TCABR #{shot_id} {channel} ({'zaklocajacy' if disruptive else 'normalny'})",
+                "description": description,
+                "generator": _make_real_csv_generator(csv_path, extra_meta),
+            }
+    return scenarios
+
+
+# Doklejamy realne scenariusze TCABR (jesli sa) NA KONCU, po syntetycznych
+# - kolejnosc w SCENARIOS = kolejnosc w selektorze dashboardu, wiec
+# syntetyczne demo zostaja pierwsze/domyslne, realne dane sa dodatkiem.
+SCENARIOS.update(_load_real_tcabr_scenarios())
 
 
 def list_scenarios():

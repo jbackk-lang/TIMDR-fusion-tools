@@ -1,0 +1,134 @@
+{
+  "samples": [
+    {
+      "shot_id": "15569",
+      "disruptive": true,
+      "disruption_time_s": 0.05658400058746338,
+      "disruption_time_method": "sudden current drop >30% of peak Ip within a 5ms window (criterion 2 of the TCABR/Zenodo dataset classification methodology, applied here to IPlasma) - computed locally, not from a bundled label",
+      "label_source": "filename from tcabr_tools.py extraction (disruptive_*/normal_* prefix)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_15569_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_15569_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_15569_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "UCZCIWY WYNIK TESTU (nie post-hoc dostrojone): surowy sygnal IPlasma ma na poczatku (probki 0-1) skok -152.6 -> 152.5 - to artefakt digitizera (prawdopodobnie stan przed-wyzwalaczem/ustalanie wzmacniacza), nie fizyka. Ten artefakt ma z-score ~200 i dominuje globalne odchylenie standardowe gradientu, ktorego uzywa Model J (jedna wartosc na caly przebieg) - w efekcie na SUROWYCH danych Model J (threshold=2.0) NIE wykrywa ZADNEGO z 3 prawdziwych zdarzen zakloceniowych (0/3.) Po odcieciu pierwszych 80us (artefaktu) czulosc Modelu J gwaltownie rosnie (setki wykryc na caly przebieg zamiast 3) - 2 z 3 strzalow maja wtedy trafienie w promieniu 3ms od prawdziwego czasu zakloceni, ale to gubi sie wsrod setek innych wykryc, a trzeci strzal (22201) nie trafia wcale. WNIOSEK: prosty globalny z-score gradientu (Model J w obecnej postaci) nie jest wiarygodnym detektorem zakloceni na prawdziwych danych bez powaznego przetworzenia wstepnego (usuniecie artefaktow, normalizacja lokalna/w oknie zamiast globalnej) - to nie zostalo tu naprawione (unikamy dostrajania po fakcie), tylko uczciwie zaraportowane."
+    },
+    {
+      "shot_id": "22201",
+      "disruptive": true,
+      "disruption_time_s": 0.1082639992237091,
+      "disruption_time_method": "sudden current drop >30% of peak Ip within a 5ms window (criterion 2 of the TCABR/Zenodo dataset classification methodology, applied here to IPlasma) - computed locally, not from a bundled label",
+      "label_source": "filename from tcabr_tools.py extraction (disruptive_*/normal_* prefix)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_22201_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_22201_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_22201_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "UCZCIWY WYNIK TESTU (nie post-hoc dostrojone): surowy sygnal IPlasma ma na poczatku (probki 0-1) skok -152.6 -> 152.5 - to artefakt digitizera (prawdopodobnie stan przed-wyzwalaczem/ustalanie wzmacniacza), nie fizyka. Ten artefakt ma z-score ~200 i dominuje globalne odchylenie standardowe gradientu, ktorego uzywa Model J (jedna wartosc na caly przebieg) - w efekcie na SUROWYCH danych Model J (threshold=2.0) NIE wykrywa ZADNEGO z 3 prawdziwych zdarzen zakloceniowych (0/3.) Po odcieciu pierwszych 80us (artefaktu) czulosc Modelu J gwaltownie rosnie (setki wykryc na caly przebieg zamiast 3) - 2 z 3 strzalow maja wtedy trafienie w promieniu 3ms od prawdziwego czasu zakloceni, ale to gubi sie wsrod setek innych wykryc, a trzeci strzal (22201) nie trafia wcale. WNIOSEK: prosty globalny z-score gradientu (Model J w obecnej postaci) nie jest wiarygodnym detektorem zakloceni na prawdziwych danych bez powaznego przetworzenia wstepnego (usuniecie artefaktow, normalizacja lokalna/w oknie zamiast globalnej) - to nie zostalo tu naprawione (unikamy dostrajania po fakcie), tylko uczciwie zaraportowane."
+    },
+    {
+      "shot_id": "20316",
+      "disruptive": true,
+      "disruption_time_s": 0.07458800077438354,
+      "disruption_time_method": "sudden current drop >30% of peak Ip within a 5ms window (criterion 2 of the TCABR/Zenodo dataset classification methodology, applied here to IPlasma) - computed locally, not from a bundled label",
+      "label_source": "filename from tcabr_tools.py extraction (disruptive_*/normal_* prefix)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_20316_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_20316_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_20316_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "UCZCIWY WYNIK TESTU (nie post-hoc dostrojone): surowy sygnal IPlasma ma na poczatku (probki 0-1) skok -152.6 -> 152.5 - to artefakt digitizera (prawdopodobnie stan przed-wyzwalaczem/ustalanie wzmacniacza), nie fizyka. Ten artefakt ma z-score ~200 i dominuje globalne odchylenie standardowe gradientu, ktorego uzywa Model J (jedna wartosc na caly przebieg) - w efekcie na SUROWYCH danych Model J (threshold=2.0) NIE wykrywa ZADNEGO z 3 prawdziwych zdarzen zakloceniowych (0/3.) Po odcieciu pierwszych 80us (artefaktu) czulosc Modelu J gwaltownie rosnie (setki wykryc na caly przebieg zamiast 3) - 2 z 3 strzalow maja wtedy trafienie w promieniu 3ms od prawdziwego czasu zakloceni, ale to gubi sie wsrod setek innych wykryc, a trzeci strzal (22201) nie trafia wcale. WNIOSEK: prosty globalny z-score gradientu (Model J w obecnej postaci) nie jest wiarygodnym detektorem zakloceni na prawdziwych danych bez powaznego przetworzenia wstepnego (usuniecie artefaktow, normalizacja lokalna/w oknie zamiast globalnej) - to nie zostalo tu naprawione (unikamy dostrajania po fakcie), tylko uczciwie zaraportowane."
+    },
+    {
+      "shot_id": "33664",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "filename from tcabr_tools.py extraction (disruptive_*/normal_* prefix)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_33664_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_33664_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_33664_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "Sygnal kontrolny (brak zaklocenia) - do porownania z powyzszym testem na strzalach zaklocajacych."
+    },
+    {
+      "shot_id": "36973",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "filename from tcabr_tools.py extraction (disruptive_*/normal_* prefix)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_36973_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_36973_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_36973_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "Sygnal kontrolny (brak zaklocenia) - do porownania z powyzszym testem na strzalach zaklocajacych."
+    }
+  ]
+}

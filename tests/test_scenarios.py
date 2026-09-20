@@ -23,6 +23,9 @@ def test_generate_scenario_baseline_matches_bundled_csv():
     assert meta["n_samples"] == 2000
 
 
+SYNTHETIC_SCENARIO_IDS = ["baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"]
+
+
 @pytest.mark.parametrize("scenario_id", list(SCENARIOS.keys()))
 def test_all_scenarios_produce_finite_nonempty_signals(scenario_id):
     time, signal, meta = generate_scenario(scenario_id)
@@ -30,7 +33,13 @@ def test_all_scenarios_produce_finite_nonempty_signals(scenario_id):
     assert len(time) == len(signal)
     assert np.all(np.isfinite(signal))
     assert np.all(np.isfinite(time))
-    assert meta["source"] == "synthetic"
+    # synthetic scenarios are always the 5 named ones above; anything else
+    # loaded into SCENARIOS is real data (currently: TCABR, source
+    # "real:tcabr:..." - see _load_real_tcabr_scenarios()) and must say so.
+    if scenario_id in SYNTHETIC_SCENARIO_IDS:
+        assert meta["source"] == "synthetic"
+    else:
+        assert meta["source"].startswith("real:")
 
 
 @pytest.mark.parametrize("scenario_id", [sid for sid in SCENARIOS if sid != "baseline"])

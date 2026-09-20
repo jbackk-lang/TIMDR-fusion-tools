@@ -203,7 +203,10 @@ def test_scenarios_endpoint_lists_five_scenarios():
     assert resp.status_code == 200
     body = resp.json()
     ids = {s["id"] for s in body["scenarios"]}
-    assert ids == {"baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"}
+    # the 5 synthetic scenarios are always present; real TCABR scenarios
+    # (tcabr_*) are optional/local (see data/real/README.md) and may add
+    # more on top - so this checks a subset, not exact equality.
+    assert {"baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"} <= ids
     for s in body["scenarios"]:
         assert s["label"]
         assert s["description"]
@@ -271,7 +274,7 @@ def test_scenarios_compare_endpoint_returns_all_scenarios():
     assert body["window"] == 64
     assert body["threshold"] == 2.0
     ids = {s["id"] for s in body["scenarios"]}
-    assert ids == {"baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"}
+    assert {"baseline", "quiet", "single_burst", "growing_mode", "noisy_flat"} <= ids
     for s in body["scenarios"]:
         assert set(["id", "label", "n_samples", "lambda", "tau", "rho", "model_j_count"]) <= set(s.keys())
     # Sanity check on a real, slightly counterintuitive statistical fact

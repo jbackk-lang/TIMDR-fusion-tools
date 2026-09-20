@@ -338,14 +338,27 @@ faktycznie wykrywa 3 wstrzyknięte zdarzenia), oraz endpointy API
 (`tests/test_api.py` — `/analyze` na przykładzie, na wgranym CSV i na
 wgranym HDF5 z kilkoma wariantami wyboru datasetu, limit rozmiaru,
 odrzucanie nieobsługiwanych rozszerzeń, obecność `latro_windowed` i
-`description` w odpowiedzi). 34/34 testów przechodzi.
+`description` w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`),
+oraz (jeśli lokalnie obecne realne dane TCABR — patrz niżej)
+`tests/test_real_tcabr.py`. 102/102 testów przechodzi (88 bez realnych
+danych TCABR, które nie są wymagane do reszty pakietu).
 
 ---
 
+## Realne dane (TCABR)
+
+`data/real/` zawiera 15 PRAWDZIWYCH sygnałów (5 wyładowań × 3 kanały —
+`IPlasma`, `VLoop`, `BbMirnovN01`) z tokamaka TCABR (Zenodo, DOI
+10.5281/zenodo.21843354, CC-BY 4.0), widoczne w dashboardzie jako
+scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. Zawiera też
+uczciwy, nieporawiony po fakcie wynik: na surowym sygnale Model J **nie
+wykrywa żadnego** z 3 prawdziwych, niezależnie wyznaczonych zdarzeń
+zakłóceniowych (artefakt digitizera na starcie zapisu dominuje globalne
+odchylenie standardowe gradientu). Pełny opis w
+[`data/real/README.md`](data/real/README.md).
+
 ## Zakres i ograniczenia
 
-- Brak prawdziwych danych open-data z W7-X/JET/DIII-D/EAST w repozytorium
-  — tylko syntetyczny przykład do demo/testów.
 - `parsers/mdsplus_parser.py` nie był uruchamiany przeciw prawdziwemu
   serwerowi MDSplus w tym środowisku — API wygląda poprawnie, ale jest
   nieprzetestowane empirycznie.
