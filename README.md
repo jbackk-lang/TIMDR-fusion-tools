@@ -310,7 +310,8 @@ CSV/HDF5, limit rozmiaru, odrzucanie nieobsługiwanych rozszerzeń,
 obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
 w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
 lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny
-i lokalny/skalibrowany tryb Modelu J na realnych sygnałach). 110/110
+i lokalny/skalibrowany tryb Modelu J na realnych sygnałach, plus zgodność
+CSV-ów z surowymi `.npz` — patrz `data/real/raw/` niżej). 115/115
 testów przechodzi z danymi TCABR obecnymi lokalnie, 66/66 bez nich —
 część testów jest sparametryzowana po liście scenariuszy demo, która
 rośnie z 5 (same syntetyczne) do 20 (+ 15 realnych TCABR), stąd różnica

@@ -41,7 +41,9 @@ TCABR_METADATA_PATH = os.path.join(REAL_DATA_DIR, "tcabr_samples_metadata.json")
 
 
 def _baseline():
-    df = pd.read_csv(BASELINE_CSV)
+    # float_precision="round_trip": patrz komentarz w parsers/csv_parser.py -
+    # domyslny parser pandas moze dac wynik rozny o 1 ULP od zapisanej wartosci
+    df = pd.read_csv(BASELINE_CSV, float_precision="round_trip")
     time = df.iloc[:, 0].to_numpy(dtype=float)
     signal = df.iloc[:, 1].to_numpy(dtype=float)
     meta = {
@@ -178,7 +180,7 @@ def _make_real_csv_generator(csv_path, extra_meta):
     wyniku bez zmian."""
 
     def _generator():
-        df = pd.read_csv(csv_path)
+        df = pd.read_csv(csv_path, float_precision="round_trip")
         time = df.iloc[:, 0].to_numpy(dtype=float)
         signal = df.iloc[:, 1].to_numpy(dtype=float)
         return time, signal, dict(extra_meta)

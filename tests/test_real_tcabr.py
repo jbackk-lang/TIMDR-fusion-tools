@@ -22,6 +22,15 @@ DISRUPTIVE_SHOTS = ["15569", "22201", "20316"]
 NORMAL_SHOTS = ["33664", "36973"]
 CHANNELS = ["IPlasma", "VLoop", "BbMirnovN01"]
 
+RAW_NPZ_FILES = {
+    "15569": "disruptive_early_shot_15569.npz",
+    "22201": "disruptive_late_shot_22201.npz",
+    "20316": "disruptive_typical_shot_20316.npz",
+    "33664": "normal_early_shot_33664.npz",
+    "36973": "normal_late_shot_36973.npz",
+}
+RAW_NPZ_DIR = os.path.join(REAL_DATA_DIR, "raw")
+
 
 def test_all_15_real_scenarios_are_listed():
     ids = {s["id"] for s in list_scenarios()}
@@ -186,3 +195,37 @@ def test_csv_files_match_metadata_sample_counts():
             _t, signal, meta = generate_scenario(f"tcabr_{shot}_{ch}")
             assert len(signal) > 0
             assert np.all(np.isfinite(signal))
+
+
+@pytest.mark.skipif(
+    not os.path.isdir(RAW_NPZ_DIR),
+    reason="surowe pliki .npz (data/real/raw/) nie sa obecne lokalnie",
+)
+@pytest.mark.parametrize("shot", DISRUPTIVE_SHOTS + NORMAL_SHOTS)
+def test_csv_matches_raw_npz_source(shot):
+    """
+    Provenance check: the shipped CSVs (time,signal) must reproduce the
+    original .npz extracted directly by tcabr_tools.py (data/real/raw/,
+    not derived from the CSVs - the independent source) EXACTLY, bit for
+    bit after float64 round-trip. CSVs are written with repr(float(...))
+    (Python's shortest round-tripping float representation), not a fixed
+    decimal count, specifically so this can be an exact equality check
+    instead of an approximate one - an earlier version used %.6f for the
+    time column, which was already close (~7ns, driven by the raw .npz
+    itself storing time as float32) but not exact, and exact is strictly
+    better when it costs nothing.
+    """
+    import numpy as np
+
+    npz_path = os.path.join(RAW_NPZ_DIR, RAW_NPZ_FILES[shot])
+    raw = np.load(npz_path)
+    for ch in CHANNELS:
+        t, signal, _meta = generate_scenario(f"tcabr_{shot}_{ch}")
+        raw_signal = raw[ch].astype(np.float64)
+        raw_time = raw[f"{ch}_time_us"].astype(np.float64) / 1e6
+        assert np.array_equal(raw_signal, signal), (
+            f"shot {shot} {ch}: sygnal w CSV nie jest bit-w-bit rowny surowemu .npz"
+        )
+        assert np.array_equal(raw_time, t), (
+            f"shot {shot} {ch}: os czasu w CSV nie jest bit-w-bit rowna surowemu .npz"
+        )

@@ -399,7 +399,7 @@ async def analyze(
 
     if name.endswith(".csv"):
         try:
-            df = pd.read_csv(io.BytesIO(raw))
+            df = pd.read_csv(io.BytesIO(raw), float_precision="round_trip")
         except Exception as e:
             raise HTTPException(400, f"Nie udalo sie odczytac CSV: {e}")
         if df.shape[1] < 2:

@@ -37,6 +37,25 @@ jako `.npz` (per strzal: `shot_id`, `<kanal>`, `<kanal>_time_us` dla
 kazdego z 3 kanalow). Skonwertowane tutaj do CSV (`time,signal`, zgodnie
 z `parsers/csv_parser.py`) - jeden plik na (strzal, kanal).
 
+**Surowe pliki `.npz`** (nieprzetworzone, bezposrednio z `tcabr_tools.py`,
+bez zadnej konwersji) sa dolaczone w `data/real/raw/` - niezalezne od
+CSV-ow zrodlo do weryfikacji, ze konwersja (mikrosekundy->sekundy,
+ukladanie kolumn) niczego nie zepsula. CSV-y sa zapisane przez
+`repr(float(...))` (najkrotszy tekst, ktory odtwarza dokladnie ta sama
+wartosc float64 - nie stala liczba miejsc po przecinku), wiec sprawdzane
+jest DOKLADNE (bit-w-bit, `np.array_equal`, nie przyblizone) rownanie z
+surowym `.npz` dla wszystkich 15 kombinacji (strzal, kanal) - zabezpieczone
+testem regresyjnym `tests/test_real_tcabr.py::test_csv_matches_raw_npz_source`.
+
+Po drodze znaleziono i naprawiono realny, ogolny blad (nie tylko w danych
+TCABR): domyslny szybki parser liczb zmiennoprzecinkowych `pandas.read_csv`
+potrafi zwrocic wartosc rozna o 1 ULP (ostatni bit mantysy) od tekstu
+zapisanego przez `repr()`/`float()` - udokumentowana wlasciwosc pandas, nie
+blad w tym repo, ale realny przy takiej weryfikacji bit-w-bit. Wszystkie
+4 miejsca w repo, ktore czytaja CSV przez pandas
+(`parsers/csv_parser.py`, `demo/scenarios.py` x2, `api.py`) maja teraz
+`float_precision="round_trip"`, ktore to gwarantuje.
+
 **Czas zaklocenia** (`disruption_time_s` w `tcabr_samples_metadata.json`)
 policzony lokalnie z `IPlasma`, kryterium 2 z metodologii klasyfikacji
 opisanej na Zenodo: nagly spadek prądu >30% wzgledem szczytu w oknie 5ms.
