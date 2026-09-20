@@ -30,6 +30,27 @@ def test_dashboard_served_at_root():
     assert "fusion-tools" in resp.text
 
 
+def test_dashboard_loads_chartjs_from_local_vendor_not_cdn():
+    """
+    Regression test: Chart.js was vendored locally at static/vendor/
+    (see git history: 'Rename static/chart.umd.js to
+    static/vendor/chart.umd.js'), but index.html's <script> tag kept
+    pointing at cdnjs.cloudflare.com instead of the local copy - so on
+    any machine without internet access to that CDN, `Chart` was never
+    defined and every chart call failed with 'Chart is not defined'.
+    index.html must reference the local vendored file, and that file
+    must actually be served (and be the real ~200KB build, not a stub).
+    """
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "cdnjs.cloudflare.com" not in resp.text
+    assert "/static/vendor/chart.umd.js" in resp.text
+
+    vendor_resp = client.get("/static/vendor/chart.umd.js")
+    assert vendor_resp.status_code == 200
+    assert len(vendor_resp.content) > 100_000
+
+
 def test_example_metadata_endpoint():
     resp = client.get("/example")
     assert resp.status_code == 200
