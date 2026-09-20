@@ -309,8 +309,12 @@ faktycznie wykrywa 3 wstrzyknięte zdarzenia), endpointy API
 CSV/HDF5, limit rozmiaru, odrzucanie nieobsługiwanych rozszerzeń,
 obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
 w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
-lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py`. 102/102
-testów przechodzi (88 bez danych TCABR, które są opcjonalne/lokalne).
+lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny
+i lokalny/skalibrowany tryb Modelu J na realnych sygnałach). 110/110
+testów przechodzi z danymi TCABR obecnymi lokalnie, 66/66 bez nich —
+część testów jest sparametryzowana po liście scenariuszy demo, która
+rośnie z 5 (same syntetyczne) do 20 (+ 15 realnych TCABR), stąd różnica
+większa niż tylko same testy w `test_real_tcabr.py`.
 
 ---
 
@@ -322,12 +326,20 @@ testów przechodzi (88 bez danych TCABR, które są opcjonalne/lokalne).
 scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. Trzy wyładowania są
 zakłócające (z niezależnie wyznaczonym czasem zakłócenia), dwa normalne.
 
-**Wynik testu**: na surowym sygnale Model J **nie wykrywa żadnego** z 3
-prawdziwych zdarzeń zakłóceniowych — artefakt digitizera na starcie
-zapisu (skok -152.6 → 152.5 kA między pierwszymi dwiema próbkami, nie
-fizyka) dominuje globalne odchylenie standardowe gradientu, którego
-Model J używa do całego przebiegu naraz. Pełny opis metody i wyniku w
-[`data/real/README.md`](data/real/README.md).
+**Wynik testu — dwa tryby Modelu J, dwa różne wyniki**: w domyślnym,
+**globalnym** trybie (`gradient_zscore()`, jedna normalizacja na cały
+przebieg) Model J **nie wykrywa żadnego** z 3 prawdziwych zdarzeń
+zakłóceniowych — artefakt digitizera na starcie zapisu (skok -152.6 →
+152.5 kA między pierwszymi dwiema próbkami, nie fizyka) dominuje globalne
+odchylenie standardowe gradientu. W **lokalnym, skalibrowanym** trybie
+(`window=1001` — normalizacja licząca się osobno w każdym oknie, z
+podłogą wyliczoną z własnego kroku kwantyzacji ADC sygnału, nie
+dostrojoną do żadnego znanego wyniku) sytuacja jest inna: dla 2 z 3
+strzałów zakłócających (15569, 22201) zdecydowana większość wykryć
+skupia się w wąskim oknie wokół prawdziwego czasu zakłócenia — realny
+sygnał niewidoczny w trybie globalnym. Trzeci strzał (20316) tej
+koncentracji nie pokazuje — uczciwie 2/3, nie 3/3. Pełny opis obu
+wyników w [`data/real/README.md`](data/real/README.md).
 
 ---
 
