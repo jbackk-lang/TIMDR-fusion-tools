@@ -236,10 +236,20 @@ sygnału stałego lub idealnie liniowego — zwraca wtedy pustą tablicę
 zamiast fałszywych detekcji. Jedyna definicja z-score w repo — używana i
 przez `model_j()`, i przez histogram w dashboardzie.
 
-`model_j(signal, threshold=2.0)` — cienki wrapper nad `gradient_zscore()`:
-zwraca indeksy próbek, gdzie `|z| > threshold`. To detektor lokalnych,
-gwałtownych zmian gradientu ("punktów skrętu"), a nie detektor lokalnych
-maksimów.
+`model_j(signal, threshold=2.0, window=None)` — cienki wrapper nad
+`gradient_zscore()`: zwraca indeksy próbek, gdzie `|z| > threshold`. To
+detektor lokalnych, gwałtownych zmian gradientu ("punktów skrętu"), a nie
+detektor lokalnych maksimów.
+
+Opcjonalny `window` (liczba próbek) przełącza `gradient_zscore()` z
+normalizacji globalnej (domyślnej, jedna wartość na cały sygnał) na
+lokalną, przesuwną (mediana/MAD gradientu w oknie) — odporną na
+pojedynczy duży, lokalny artefakt, który w trybie globalnym potrafi
+zdominować całą normalizację. Podłoga dla lokalnego MAD jest kalibrowana
+z własnego kroku kwantyzacji ADC sygnału (`_estimate_quantization_step()`)
+zamiast dobierana ręcznie — patrz [`data/real/README.md`](data/real/README.md)
+po pełny, uczciwy wynik tego trybu na realnych danych TCABR (działa
+częściowo: 2 z 3 realnych zakłóceń, nie 3 z 3).
 
 ---
 

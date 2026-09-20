@@ -64,6 +64,67 @@ def test_gradient_zscore_has_zero_mean_and_unit_std_when_nonflat():
     assert z.std() == pytest.approx(1.0, abs=1e-9)
 
 
+def test_gradient_zscore_local_mode_matches_global_shape_and_length():
+    """window=... (local mode) must return the same length as global mode
+    and stay finite - basic sanity check independent of the real-data
+    behavior covered in tests/test_real_tcabr.py."""
+    rng = np.random.RandomState(2)
+    x = rng.normal(size=2000)
+    z_local = gradient_zscore(x, window=201)
+    assert len(z_local) == len(x)
+    assert np.all(np.isfinite(z_local))
+
+
+def test_gradient_zscore_local_mode_resists_a_single_large_artifact():
+    """Regression for the real problem this mode was built for: one huge
+    isolated spike must not suppress sensitivity to a real, separate event
+    elsewhere in the same signal - unlike global mode, where a single
+    outlier inflates the one shared std(gradient) for the whole signal."""
+    rng = np.random.RandomState(3)
+    x = rng.normal(scale=0.1, size=3000)
+    x[0] += 500.0  # huge, isolated, start-of-signal artifact (like the real TCABR case)
+    x[1500:1510] += 5.0  # separate, smaller, real-looking event far from the artifact
+
+    z_global = gradient_zscore(x)
+    z_local = gradient_zscore(x, window=201)
+
+    # global mode: the artifact should dominate, leaving little/no margin
+    # to flag the smaller separate event
+    global_hits_near_event = np.sum(np.abs(z_global[1490:1520]) > 2.0)
+    # local mode: normalizing against nearby background instead of the
+    # whole signal should still catch the separate event
+    local_hits_near_event = np.sum(np.abs(z_local[1490:1520]) > 2.0)
+
+    assert local_hits_near_event > global_hits_near_event
+
+
+def test_gradient_zscore_local_mode_survives_quantized_flat_regions():
+    """Regression for the real numerical failure found on raw TCABR data:
+    naive local MAD collapses to ~0 in flat, coarsely-quantized regions,
+    blowing up z-scores to meaningless values (millions+). The
+    quantization-calibrated floor (_estimate_quantization_step(), a
+    measured physical property of the signal, not a tuned constant) must
+    keep results bounded even on a heavily quantized synthetic signal."""
+    rng = np.random.RandomState(4)
+    # simulate coarse ADC quantization: round a smooth signal to a visible step
+    t = np.linspace(0, 1, 4000)
+    raw = 10 * np.sin(2 * np.pi * 3 * t) + rng.normal(scale=0.05, size=4000)
+    step = 0.5
+    quantized = np.round(raw / step) * step
+
+    z_local = gradient_zscore(quantized, window=201)
+    assert np.all(np.isfinite(z_local))
+    assert np.max(np.abs(z_local)) < 1000  # bounded, not millions/billions
+
+
+def test_estimate_quantization_step_measures_the_actual_step():
+    from model_j.model_j_detector import _estimate_quantization_step
+
+    x = np.round(np.linspace(0, 10, 500) / 0.25) * 0.25
+    step = _estimate_quantization_step(x)
+    assert step == pytest.approx(0.25, abs=1e-9)
+
+
 def test_model_j_is_exactly_the_thresholded_gradient_zscore():
     """model_j() must be a thin wrapper over gradient_zscore() - same
     single definition of the z-score used everywhere in this repo
