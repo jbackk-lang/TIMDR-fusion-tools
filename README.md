@@ -328,37 +328,42 @@ obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
 w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
 lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny,
 lokalny/skalibrowany i mostowy tryb Modelu J na realnych sygnałach, plus
-zgodność CSV-ów z surowymi `.npz` — patrz `data/real/raw/` niżej).
-125/125 testów przechodzi z danymi TCABR obecnymi lokalnie, 72/72 bez
-nich — część testów jest sparametryzowana po liście scenariuszy demo,
-która rośnie z 5 (same syntetyczne) do 20 (+ 15 realnych TCABR), stąd
-różnica większa niż tylko same testy w `test_real_tcabr.py`.
+zgodność CSV-ów z surowymi `.npz`) oraz `tests/test_real_tcabr_batch2.py`
+(niezależna walidacja mostu na 30 wcześniej niewidzianych strzałach —
+patrz `data/real/raw/` i `data/real/README.md` niżej). 327/327 testów
+przechodzi z danymi TCABR obecnymi lokalnie, 72/72 bez nich — część
+testów jest sparametryzowana po liście scenariuszy demo, która rośnie z 5
+(same syntetyczne) do 40 (+ 35 realnych TCABR), stąd różnica większa niż
+tylko same testy w `test_real_tcabr*.py`.
 
 ---
 
 ## Realne dane (TCABR)
 
-`data/real/` zawiera 15 PRAWDZIWYCH sygnałów (5 wyładowań × 3 kanały —
+`data/real/` zawiera 105 PRAWDZIWYCH sygnałów (35 wyładowań × 3 kanały —
 `IPlasma`, `VLoop`, `BbMirnovN01`) z tokamaka TCABR (Zenodo, DOI
 10.5281/zenodo.21843354, CC-BY 4.0), widoczne w dashboardzie jako
-scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. Trzy wyładowania są
-zakłócające (z niezależnie wyznaczonym czasem zakłócenia), dwa normalne.
+scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. 23 wyładowania są
+zakłócające (z niezależnie wyznaczonym czasem zakłócenia), 12 normalnych.
 
-**Wynik testu — dwa tryby Modelu J, dwa różne wyniki**: w domyślnym,
-**globalnym** trybie (`gradient_zscore()`, jedna normalizacja na cały
-przebieg) Model J **nie wykrywa żadnego** z 3 prawdziwych zdarzeń
-zakłóceniowych — artefakt digitizera na starcie zapisu (skok -152.6 →
-152.5 kA między pierwszymi dwiema próbkami, nie fizyka) dominuje globalne
-odchylenie standardowe gradientu. W **lokalnym, skalibrowanym** trybie
-(`window=1001`) sytuacja jest częściowa: dla 2 z 3 strzałów zakłócających
-(15569, 22201) zdecydowana większość wykryć skupia się w wąskim oknie
-wokół prawdziwego czasu zakłócenia, trzeci (20316) tej koncentracji nie
-pokazuje. W trybie **mostowym** (`bridge_detector()` — wymaga zgodności
-krótkiej i długiej skali naraz) wynik jest lepszy: **100%** wykryć mieści
-się w ±10ms od zakłócenia dla WSZYSTKICH 3 strzałów — ale nadal nie
-doskonale (jeden z 2 normalnych strzałów daje porównywalny fałszywy
-klaster). Pełny opis wszystkich trzech trybów w
-[`data/real/README.md`](data/real/README.md).
+**Wynik testu — trzy tryby Modelu J**: w domyślnym, **globalnym** trybie
+(`gradient_zscore()`, jedna normalizacja na cały przebieg) Model J **nie
+wykrywa żadnego** z prawdziwych zdarzeń zakłóceniowych — artefakt
+digitizera na starcie zapisu dominuje globalne odchylenie standardowe
+gradientu. W **lokalnym, skalibrowanym** trybie (`window=1001`) wynik
+jest częściowy (2 z 3 pierwszych strzałów). W trybie **mostowym**
+(`bridge_detector()` — wymaga zgodności krótkiej i długiej skali naraz)
+zbudowanym na pierwszych 5 strzałach: **100%** precyzji na wszystkich 3.
+
+**Niezależna walidacja na 30 kolejnych, wcześniej niewidzianych
+strzałach** (parametry mostu niezmienione): 16/20 (80%) nowych
+zakłócających strzałów — 100% precyzji, średnia precyzja tam gdzie były
+wykrycia — 96,8%, 2/20 — brak wykryć (zdiagnozowane, ten sam mechanizm co
+przy strzale 20316). Ważne zastrzeżenie: to precyzja LOKALIZACJI w obrębie
+już znanego zakłócenia, nie swoistość klasyfikatora — na 10 nowych
+normalnych strzałach most nadal generuje wykrycia, część porównywalnych
+wielkością z prawdziwymi zakłóceniami. Pełny, szczegółowy opis wszystkich
+trybów i wyniku walidacji w [`data/real/README.md`](data/real/README.md).
 
 ---
 

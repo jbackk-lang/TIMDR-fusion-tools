@@ -129,6 +129,786 @@
       ],
       "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
       "model_j_validation_note": "Sygnal kontrolny (brak zaklocenia). Lokalny, kalibrowany z-score (gradient_zscore(window=1001), threshold=5.0) daje tu 247 (33664) / 95 (36973) wykryc na caly przebieg - porownywalnie lub wiecej niz na strzalach zaklocajacych powyzej (23-101). WNIOSEK: sama SUROWA LICZBA wykryc lokalnego Modelu J nie odroznia strzalu zaklocajacego od normalnego - potrzebna jest analiza koncentracji w czasie (czy wykrycia skupiaja sie wokol jednego momentu, czy sa rozproszone), nie sam prog liczbowy."
+    },
+    {
+      "shot_id": "33665",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_33665_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_33665_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_33665_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 164 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "33874",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_33874_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_33874_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_33874_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 63 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "34077",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_34077_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_34077_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_34077_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 111 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "34518",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_34518_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_34518_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_34518_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 55 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "34776",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_34776_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_34776_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_34776_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 106 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "35008",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_35008_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_35008_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_35008_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 53 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "35363",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_35363_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_35363_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_35363_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 51 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "35817",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_35817_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_35817_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_35817_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 68 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "36096",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_36096_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_36096_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_36096_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 72 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "36874",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_36874_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_36874_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_36874_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector(): 37 wykryc na caly przebieg (brak referencyjnego dt - strzal normalny). Patrz data/real/README.md po analize klastrow/falszywych trafien."
+    },
+    {
+      "shot_id": "22243",
+      "disruptive": true,
+      "disruption_time_s": 0.05,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_22243_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_22243_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_22243_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 15 wykryc, 15 (100%) w +-10ms od dt=0.0500s."
+    },
+    {
+      "shot_id": "20027",
+      "disruptive": true,
+      "disruption_time_s": 0.06409999999999999,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_20027_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_20027_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_20027_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 4 wykryc, 4 (100%) w +-10ms od dt=0.0641s."
+    },
+    {
+      "shot_id": "18597",
+      "disruptive": true,
+      "disruption_time_s": 0.069,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_18597_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_18597_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_18597_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 0 wykryc, 0 (0%) w +-10ms od dt=0.0690s. BRAK wykryc."
+    },
+    {
+      "shot_id": "18727",
+      "disruptive": true,
+      "disruption_time_s": 0.0722,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_18727_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_18727_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_18727_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 9 wykryc, 9 (100%) w +-10ms od dt=0.0722s."
+    },
+    {
+      "shot_id": "20950",
+      "disruptive": true,
+      "disruption_time_s": 0.0742,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_20950_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_20950_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_20950_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 8 wykryc, 6 (75%) w +-10ms od dt=0.0742s."
+    },
+    {
+      "shot_id": "16999",
+      "disruptive": true,
+      "disruption_time_s": 0.07740000000000001,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16999_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16999_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16999_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 43 wykryc, 43 (100%) w +-10ms od dt=0.0774s."
+    },
+    {
+      "shot_id": "16653",
+      "disruptive": true,
+      "disruption_time_s": 0.081,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16653_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16653_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16653_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 51 wykryc, 51 (100%) w +-10ms od dt=0.0810s."
+    },
+    {
+      "shot_id": "16646",
+      "disruptive": true,
+      "disruption_time_s": 0.0836,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16646_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16646_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16646_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 87 wykryc, 58 (67%) w +-10ms od dt=0.0836s."
+    },
+    {
+      "shot_id": "17439",
+      "disruptive": true,
+      "disruption_time_s": 0.0872,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17439_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17439_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17439_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 35 wykryc, 35 (100%) w +-10ms od dt=0.0872s."
+    },
+    {
+      "shot_id": "17578",
+      "disruptive": true,
+      "disruption_time_s": 0.1115,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17578_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17578_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17578_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 53 wykryc, 53 (100%) w +-10ms od dt=0.1115s."
+    },
+    {
+      "shot_id": "17748",
+      "disruptive": true,
+      "disruption_time_s": 0.0521,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17748_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17748_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17748_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 45 wykryc, 45 (100%) w +-10ms od dt=0.0521s."
+    },
+    {
+      "shot_id": "18560",
+      "disruptive": true,
+      "disruption_time_s": 0.06409999999999999,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_18560_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_18560_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_18560_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 52 wykryc, 52 (100%) w +-10ms od dt=0.0641s."
+    },
+    {
+      "shot_id": "18593",
+      "disruptive": true,
+      "disruption_time_s": 0.069,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_18593_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_18593_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_18593_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 0 wykryc, 0 (0%) w +-10ms od dt=0.0690s. BRAK wykryc."
+    },
+    {
+      "shot_id": "21918",
+      "disruptive": true,
+      "disruption_time_s": 0.0721,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_21918_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_21918_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_21918_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 4 wykryc, 4 (100%) w +-10ms od dt=0.0721s."
+    },
+    {
+      "shot_id": "17775",
+      "disruptive": true,
+      "disruption_time_s": 0.0742,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17775_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17775_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17775_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 50 wykryc, 50 (100%) w +-10ms od dt=0.0742s."
+    },
+    {
+      "shot_id": "17077",
+      "disruptive": true,
+      "disruption_time_s": 0.0773,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17077_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17077_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17077_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 51 wykryc, 51 (100%) w +-10ms od dt=0.0773s."
+    },
+    {
+      "shot_id": "16667",
+      "disruptive": true,
+      "disruption_time_s": 0.0809,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16667_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16667_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16667_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 59 wykryc, 59 (100%) w +-10ms od dt=0.0809s."
+    },
+    {
+      "shot_id": "16642",
+      "disruptive": true,
+      "disruption_time_s": 0.0836,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16642_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16642_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16642_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 38 wykryc, 38 (100%) w +-10ms od dt=0.0836s."
+    },
+    {
+      "shot_id": "16456",
+      "disruptive": true,
+      "disruption_time_s": 0.0872,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16456_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16456_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16456_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 62 wykryc, 62 (100%) w +-10ms od dt=0.0872s."
+    },
+    {
+      "shot_id": "19896",
+      "disruptive": true,
+      "disruption_time_s": 0.11120000000000001,
+      "disruption_time_method": "wartosc wzieta wprost z MANIFEST.json wygenerowanego przez tcabr_tools.py (niezalezna od kodu analitycznego tego repo - NIE przeliczana tutaj samodzielnie, w odroznieniu od oryginalnych 3 strzalow, gdzie disruption_time_s zostalo policzone lokalnie kryterium 2 z Zenodo)",
+      "label_source": "MANIFEST.json z ekstrakcji tcabr_tools.py (uzytkownik, partia 2/3)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_19896_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_19896_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_19896_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
+      "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 2 wykryc, 2 (100%) w +-10ms od dt=0.1112s."
     }
   ]
 }

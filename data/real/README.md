@@ -10,17 +10,26 @@ Zrodlo: "Experimental Plasma Discharge Dataset from the TCABR Tokamak"
 (Universidade de Sao Paulo), CC-BY 4.0, 2189 realnych wyladowan (1754
 non-disruptive + 435 disruptive). https://zenodo.org/records/21843354
 
-**5 realnych strzalow x 3 kanaly = 15 sygnalow** sa tu wgrane i
+**35 realnych strzalow x 3 kanaly = 105 sygnalow** sa tu wgrane i
 zarejestrowane jako scenariusze w dashboardzie (`tcabr_<shot>_<kanal>`,
-widoczne w `GET /scenarios` obok syntetycznych):
+widoczne w `GET /scenarios` obok syntetycznych): 23 zaklocajace, 12
+normalnych. Pierwsze 5 (3 zaklocajace + 2 normalne) zostaly wyciagniete
+jako pierwsze i uzyte do zbudowania `bridge_detector()` (patrz nizej);
+kolejne 30 (20 zaklocajacych + 10 normalnych) zostalo wyciagniete PO
+ustaleniu parametrow detektora, wylacznie do niezaleznej walidacji - patrz
+sekcja "Walidacja na 30 nowych strzalach" nizej.
 
-| shot_id | typ | czas zaklocenia |
-|---|---|---|
-| 15569 | disruptive (early) | 0.0566 s |
-| 20316 | disruptive (typical) | 0.0746 s |
-| 22201 | disruptive (late) | 0.1083 s |
-| 33664 | normal | - |
-| 36973 | normal | - |
+| shot_id | typ | czas zaklocenia | partia |
+|---|---|---|---|
+| 15569 | disruptive (early) | 0.0566 s | 1 (budowa) |
+| 20316 | disruptive (typical) | 0.0746 s | 1 (budowa) |
+| 22201 | disruptive (late) | 0.1083 s | 1 (budowa) |
+| 33664 | normal | - | 1 (budowa) |
+| 36973 | normal | - | 1 (budowa) |
+| 20 kolejnych zaklocajacych | disruptive | 0.050-0.112 s | 2-3 (walidacja) |
+| 10 kolejnych normalnych | normal | - | 2-3 (walidacja) |
+
+Pelna lista 35 strzalow: `data/real/tcabr_samples_metadata.json`.
 
 Kanaly: `IPlasma` (prad plazmy, kA), `VLoop` (napiecie petli, V),
 `BbMirnovN01` (jedna cewka Mirnova). **Kazdy kanal ma WLASNA, osobna os
@@ -44,7 +53,7 @@ ukladanie kolumn) niczego nie zepsula. CSV-y sa zapisane przez
 `repr(float(...))` (najkrotszy tekst, ktory odtwarza dokladnie ta sama
 wartosc float64 - nie stala liczba miejsc po przecinku), wiec sprawdzane
 jest DOKLADNE (bit-w-bit, `np.array_equal`, nie przyblizone) rownanie z
-surowym `.npz` dla wszystkich 15 kombinacji (strzal, kanal) - zabezpieczone
+surowym `.npz` dla wszystkich 105 kombinacji (strzal, kanal) - zabezpieczone
 testem regresyjnym `tests/test_real_tcabr.py::test_csv_matches_raw_npz_source`.
 
 Po drodze znaleziono i naprawiono realny, ogolny blad (nie tylko w danych
@@ -212,15 +221,86 @@ prawdziwym zakloceniu. Ale strzal 36973 (tez normalny) daje JEDEN klaster
 istnienie pojedynczego zwartego klastra nie wystarcza jako regula
 decyzyjna bez dalszej walidacji na wiekszej probie.
 
-**Co z tego wynika praktycznie**: most to realny, zdiagnozowany i
-uczciwie przetestowany krok naprzod (2/3 -> 3/3 pod wzgledem precyzji), ale
-z n=3 zaklocajacymi i n=2 normalnymi strzalami wciaz za malo, zeby
-stwierdzic, ze to gotowy klasyfikator - potrzeba wiecej realnych strzalow
-(dataset ma 435 zaklocajacych, mamy 3) do rzetelnej walidacji, zanim
-mozna by powiedziec cos wiecej niz "obiecujacy kierunek". Do realnej
-diagnostyki produkcyjnej repozytorium ma juz dzialajace, prostsze
-narzedzie - kryterium 2 samo w sobie (uzyte do policzenia
-`disruption_time_s`), bez potrzeby laczenia z Modelem J.
+**Co z tego wynika praktycznie (przed walidacja na 30 nowych strzalach,
+sekcja nizej)**: most to realny, zdiagnozowany i uczciwie przetestowany
+krok naprzod (2/3 -> 3/3 pod wzgledem precyzji), ale z n=3 zaklocajacymi i
+n=2 normalnymi strzalami wciaz za malo, zeby stwierdzic, ze to gotowy
+klasyfikator.
+
+### Walidacja na 30 nowych strzalach (parametry mostu NIEZMIENIONE)
+
+Po zbudowaniu i zacommitowaniu `bridge_detector()` (parametry
+`long_window=1250, drop_fraction=0.30, short_window=1001,
+short_threshold=5.0` zamroz one wtedy) uzytkownik wyciagnal z Zenodo 30
+KOLEJNYCH, wczesniej niewidzianych strzalow - 20 zaklocajacych + 10
+normalnych, bez powtorzen z pierwszych 5. Czasy zaklocenia dla tych 20
+sa wziete WPROST z `MANIFEST.json` wygenerowanego przez `tcabr_tools.py`
+(niezalezne od tego repo, nie przeliczane tutaj - w odroznieniu od
+oryginalnych 3, gdzie disruption_time_s zostalo policzone lokalnie).
+
+Most zostal uruchomiony na tych 30 strzalach BEZ ZMIANY JAKIEGOKOLWIEK
+parametru - to prawdziwy test generalizacji, nie kolejna runda dostrajania.
+
+**Wynik na 20 nowych zaklocajacych strzalach** (precyzja = odsetek
+wykryc mostu w +-10ms od prawdziwego, niezaleznie podanego czasu
+zaklocenia):
+
+- 16/20 (80%) strzalow: **100% precyzji** (kazde wykrycie trafne),
+- 2/20 (10%): czesciowa precyzja (75% i 67%),
+- 2/20 (10%): **zero wykryc** (strzaly 18597 i 18593),
+- srednia precyzja tam, gdzie byly jakiekolwiek wykrycia: **96.8%**.
+
+To duzo lepszy wynik niz mozna bylo oczekiwac po samym n=3 - potwierdza,
+ze most nie zostal przypadkiem dopasowany do trzech konkretnych
+przypadkow.
+
+**Diagnoza 2 przypadkow zerowych wykryc**: oba strzaly (18597, 18593)
+maja NIETYPOWO SZYBKIE zalamanie - prad spada z ~72-74 kA do niemal zera
+w ciagu 4-5ms OD SAMEGO `dt` (bez wczesniejszej fazy plaskiej), podczas
+gdy wiekszosc pozostalych strzalow ma zalamanie 4-6ms PO okresie plaskim.
+Hipoteza (spojna z diagnoza strzalu 20316 wyzej): tak szybkie zalamanie
+wypelnia wieksza czesc okna krotkiej skali (1001 probek = 4ms), przez co
+samo siebie zaszumia - ten sam mechanizm co poprzednio, inny konkretny
+przypadek. Nie naprawiane w tej rundzie (unikamy kolejnej rundy
+dostrajania pod konkretne przypadki) - zaraportowane jako znane,
+zrozumiane ograniczenie.
+
+**WAZNE rozroznienie - precyzja lokalizacji != swoistosc klasyfikatora**:
+powyzsze 96.8%/80% mowi, ILE Z WYKRYC mostu jest trafnych, GDY JUZ
+WIADOMO, ze strzal jest zaklocajacy i znany jest prawdziwy czas
+zaklocenia. To NIE jest to samo, co "czy most odroznia strzal
+zaklocajacy od normalnego" - tego NIE mierzy. Na 10 nowych strzalach
+normalnych most nadal generuje wykrycia (37-164 na strzal), a kilka z
+nich ma pojedynczy, zwarty klaster porownywalny wielkoscia z realnymi
+zaklóceniami (np. strzal 33665: klaster 102 punktow - wiekszy niz
+niejeden prawdziwy klaster zaklocajacy, patrz tabela nizej). **Most NIE
+zostal zwalidowany jako klasyfikator "zaklocajacy vs normalny" - tylko
+jako lokalizator W OBREBIE juz znanego zaklocenia.**
+
+| strzal | typ | wykryc razem | najwiekszy klaster |
+|---|---|---|---|
+| 33664 | normalny | 163 | 110 |
+| 36973 | normalny | 63 | 57 |
+| 33665 | normalny | 164 | 102 |
+| 34077 | normalny | 111 | 65 |
+| 34776 | normalny | 106 | 62 |
+| 35817 | normalny | 68 | 54 |
+| 36096 | normalny | 72 | 45 |
+| 33874 | normalny | 63 | 32 |
+| 35363 | normalny | 51 | 28 |
+| 36874 | normalny | 37 | 21 |
+| 34518 | normalny | 55 | 18 |
+| 35008 | normalny | 53 | 18 |
+
+**Co z tego wynika praktycznie**: most generalizuje dobrze do lokalizacji
+w czasie na wczesniej niewidzianych zaklocajacych strzalach (80-90% pelny
+sukces, zdiagnozowany i zrozumiany tryb awarii dla reszty) - to solidny,
+prawdziwy wynik. Ale NIE jest gotowym detektorem/klasyfikatorem "czy to
+jest zaklocenie" bez wczesniejszej wiedzy, ze zaklocenie tam jest - do
+tego potrzebowalby dodatkowej cechy odrozniajacej (np. wzgledna wielkosc
+spadku pradu, nie tylko obecnosc klastra). Do realnej diagnostyki
+produkcyjnej (wykrycie NIEZNANEGO zaklocenia w nowym strzale) repozytorium
+ma juz dzialajace, prostsze narzedzie - kryterium 2 samo w sobie.
 
 ## Jak dodac wiecej realnych strzalow
 
