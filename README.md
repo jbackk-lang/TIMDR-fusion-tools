@@ -37,6 +37,20 @@ zastępują.
 Wynik widoczny live w dashboardzie (panel "Detektor geometryczny" — patrz
 niżej) dla dowolnego scenariusza TCABR.
 
+### Walidacja cross-device na MAST (bez etykiet)
+
+`is_fast_quench()`/`quench_duration()` uruchomione bez zmian kodu na dwóch
+rozłącznych próbkach po 579 strzałów MAST (`magnetics/ip`, parametry
+okienkowe przeliczone na czas fizyczny, kryteria zamrożone przed
+uruchomieniem): rozkład czasu zaniku jest dwumodalny (ok. 2–3 ms i ok.
+50 ms, przerwa 4–15 ms zawiera ok. 4,5% strzałów) i powtarzalny w obu
+próbkach; próg 15 ms z TCABR działa tak samo jak 7,7 ms. **To opis struktury
+rozkładu, nie trafność klasyfikacji** — dla MAST nie ma dostępnych etykiet
+dysrupcji (`level2/defuse`: AccessDenied), więc nie wiadomo, czy szybki tryb
+(ok. 65% strzałów) to zakłócenia. `bridge_detector()` nie wykazał na MAST
+związku z `is_fast_quench()`. Pre-rejestracje, skrypty i wyniki:
+[`data/mast_cross_device/`](data/mast_cross_device/).
+
 ---
 
 ## Cele projektu
@@ -464,6 +478,11 @@ walidacji w [`data/real/README.md`](data/real/README.md).
 - `phasespace_funnel_ratio()` ma mniejszą podstawę dowodową niż
   `is_fast_quench()`/`bridge_detector()` (jedna runda walidacji held-out,
   19 strzałów) i nie jest doskonały (2 fałszywie ujemne na tej rundzie).
+- Walidacja na MAST (`data/mast_cross_device/`) nie ma etykiet dysrupcji:
+  pokazuje powtarzalną dwumodalność czasu zaniku, nie skuteczność
+  klasyfikacji na MAST. `phasespace_funnel_ratio()` nie był na MAST
+  testowany (Vloop z rekonstrukcji EFIT ma zbyt rzadkie próbkowanie, 5 ms,
+  z lukami).
 - Wgrywanie HDF5 w `/analyze` ładuje **wszystkie** datasety pliku do
   pamięci naraz (`load_hdf5()` z `parsers/hdf5_parser.py` robi to
   eagerly) zanim wybierze, który jest sygnałem — dla pliku z dużą liczbą
