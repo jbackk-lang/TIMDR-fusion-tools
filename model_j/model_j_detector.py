@@ -142,3 +142,123 @@ def model_j(signal, threshold=2.0, window=None):
     if z.size == 0:
         return np.array([], dtype=int)
     return np.where(np.abs(z) > threshold)[0]
+
+
+def sustained_drop_mask(signal, window=1250, drop_fraction=0.30):
+    """
+    Skala DLUGA mostu (patrz bridge_detector() nizej): flaguje probki, gdzie
+    sygnal spadl o wiecej niz `drop_fraction` wzgledem swojego lokalnego
+    szczytu w poprzedzajacym oknie `window` probek (bez zagladania w
+    przyszlosc) - to POSUWANA, liczona w kazdym punkcie wersja JUZ
+    zwalidowanego kryterium klasyfikacji TCABR z Zenodo (">30% spadku
+    pradu wzgledem szczytu w oknie 5ms"), nie nowo wymyslona metryka.
+    `window=1250` odpowiada 5ms przy probkowaniu 4us (dokladnie to samo
+    okno co w oryginalnym kryterium), `drop_fraction=0.30` to dokladnie
+    ten sam prog 30% - oba wybrane PRZED sprawdzeniem wyniku na
+    jakimkolwiek konkretnym strzale, nie dobrane pod wynik.
+
+    UWAGA: pierwsza proba przeksztalcenia tej idei w z-score (MAD na
+    pelnym oknowanym przyrostie sygnalu) zawiodla - mediana przyrostu
+    wychodzi dokladnie 0 (regulacja pradu plazmy trzyma go plasko przez
+    wiekszosc probek), wiec MAD drastycznie nie docenia typowej skali
+    aktywnych wahan gdzie indziej w przebiegu i kazde odejscie od 0
+    dostaje absurdalnie wysoki z-score (tysiace falszywych wykryc).
+    Dlatego ta funkcja NIE zwraca z-score, tylko bezposrednio te sama,
+    juz zwalidowana, nie-znormalizowana metryke procentowa co oryginalne
+    kryterium.
+
+    Parametry:
+      signal        - sekwencja liczb.
+      window        - rozmiar okna wstecz (probki), domyslnie 1250 (5ms
+                       przy 4us/probke).
+      drop_fraction - prog wzglednego spadku od lokalnego szczytu
+                       (domyslnie 0.30 = 30%).
+
+    Zwraca:
+      np.ndarray bool (ta sama dlugosc co signal).
+
+    ZNANE OGRANICZENIE (znalezione przy testowaniu, nie ukryte): pojedynczy,
+    izolowany, jednopróbkowy skok w gorę, po ktorym sygnal NATYCHMIAST
+    wraca do poprzedniego poziomu, tez zostanie oflagowany - ten skok
+    sam staje sie "lokalnym szczytem" dla rolling-max, a natychmiastowy
+    powrot wyglada jak >30% spadek od niego. To rozne od prawdziwego,
+    utrzymujacego sie zaniku pradu (gdzie szczyt jest szeroki, nie
+    jednopróbkowy) - w praktyce na realnych danych TCABR nie byl to
+    problem (patrz tests/test_real_tcabr.py), ale warto o tym wiedziec
+    przy uzyciu na innych sygnalach z izolowanymi impulsami.
+    """
+    x = np.asarray(signal, dtype=float)
+    if x.size == 0:
+        return np.array([], dtype=bool)
+    peak = pd.Series(x).rolling(window, min_periods=1).max().to_numpy()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        drop = (peak - x) / np.abs(peak)
+    drop = np.nan_to_num(drop, nan=0.0, posinf=0.0, neginf=0.0)
+    return drop > drop_fraction
+
+
+def bridge_detector(
+    signal,
+    long_window=1250,
+    drop_fraction=0.30,
+    short_window=1001,
+    short_threshold=5.0,
+    exclude_start=2000,
+):
+    """
+    "Most" laczacy dwie skale czasowe - odpowiedz na realny problem
+    znaleziony przy realnych danych TCABR: sam krotki, punktowy
+    gradient_zscore(window=short_window) (patrz wyzej) trafia 2 z 3
+    prawdziwych zaklocen, ale z duzo falszywych wykryc w tle (patrz
+    data/real/README.md); sama dluga skala (sustained_drop_mask())
+    poprawnie identyfikuje WSZYSTKIE 3 zaklocenia (to jest juz
+    zwalidowane kryterium 2 z Zenodo), ale sama w sobie nie jest
+    "detektorem punktowym" - to prog na calym przebiegu, nieczuly na
+    lokalizacje w czasie tak precyzyjnie jak z-score.
+
+    Most: probka jest wykryciem tylko jesli OBIE skale sie zgadzaja
+    (AND) - krotka skala daje precyzyjna lokalizacje w czasie, dluga
+    skala odrzuca punktowe fluktuacje szumu, ktore nie sa czescia
+    prawdziwego, utrzymujacego sie spadku.
+
+    Uczciwy wynik na realnych danych TCABR (zweryfikowany w
+    tests/test_real_tcabr.py, PRZED wyciagnieciem dodatkowych probek do
+    dalszej walidacji - patrz data/real/README.md): dla WSZYSTKICH 3
+    zaklocajacych strzalow (15569, 22201, 20316) 100% wykryc mostu miesci
+    sie w +-10ms od prawdziwego, niezaleznie wyznaczonego czasu
+    zaklocenia, skupionych w 1-2 wyraznych klastrach czasowych - duza
+    poprawa wzgledem samej krotkiej skali (2/3, wieksze tlo szumu). Na
+    strzalach normalnych most nadal daje falszywe wykrycia (nie jest to
+    doskonaly klasyfikator) - w JEDNYM z 2 normalnych strzalow (36973)
+    tworzy pojedynczy, porownywalny wielkoscia klaster jak przy
+    prawdziwym zakloceniu, co jest uczciwie udokumentowanym
+    ograniczeniem, nie przemilczane.
+
+    Parametry:
+      signal          - sekwencja liczb.
+      long_window     - okno (probki) dla sustained_drop_mask() (domyslnie
+                         1250 = 5ms przy 4us/probke).
+      drop_fraction   - prog dla sustained_drop_mask() (domyslnie 0.30).
+      short_window    - okno (probki) dla gradient_zscore() (domyslnie 1001).
+      short_threshold - prog |z-score| dla krotkiej skali (domyslnie 5.0).
+      exclude_start   - liczba poczatkowych probek do pominiecia (domyslnie
+                         2000) - wyklucza artefakt digitizera na starcie
+                         zapisu (patrz data/real/README.md), ktory inaczej
+                         jest wykrywany przez obie skale naraz.
+
+    Zwraca:
+      np.ndarray z indeksami (int) probek wykrytych przez obie skale.
+    """
+    x = np.asarray(signal, dtype=float)
+    if x.size == 0:
+        return np.array([], dtype=int)
+
+    long_mask = sustained_drop_mask(x, window=long_window, drop_fraction=drop_fraction)
+    short_points = model_j(x, threshold=short_threshold, window=short_window)
+    short_mask = np.zeros(x.size, dtype=bool)
+    short_mask[short_points] = True
+
+    bridge_mask = long_mask & short_mask
+    if exclude_start > 0:
+        bridge_mask[:exclude_start] = False
+    return np.where(bridge_mask)[0]

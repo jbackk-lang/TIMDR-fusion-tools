@@ -151,18 +151,76 @@ lub wieksze liczby - 95-247 vs 23-101) - informatywna jest KONCENTRACJA W
 CZASIE, nie sam fakt przekroczenia progu (ten sam wniosek co dla
 syntetycznych `quiet`/`single_burst` w README.md).
 
-**Co z tego wynika praktycznie**: lokalna, kalibrowana normalizacja to
-realna poprawa wzgledem globalnej (ujawnia sygnal, ktorego globalna wersja
-w ogole nie widzi), ale to nadal nie jest niezawodny, gotowy detektor
-zaklocen (2/3, wymaga analizy koncentracji w czasie, nie samego progu).
-Repozytorium ma juz jednak dzialajacy, zwalidowany detektor do tego
-konkretnego zadania - to wlasnie kryterium 2 (spadek pradu >30% w oknie
-5ms) uzyte wyzej do policzenia `disruption_time_s`, ktore poprawnie i
-niezaleznie odtworzylo kolejnosc early/typical/late na wszystkich 3
-strzalach. Dla realnych zaklocen plazmy to ono jest wlasciwym narzedziem
-produkcyjnym; lokalny Model J zostaje udokumentowany jako czesciowo
-dzialajacy, ogolny detektor - uzyteczny do eksploracji, nie do
-ostatecznej diagnozy.
+**Co z tego wynika praktycznie (przed mostem, sekcja nizej)**: lokalna,
+kalibrowana normalizacja to realna poprawa wzgledem globalnej (ujawnia
+sygnal, ktorego globalna wersja w ogole nie widzi), ale sama w sobie
+nadal nie jest niezawodnym detektorem (2/3).
+
+### Diagnoza, dlaczego 20316 zawodzi - i most, ktory to naprawia
+
+Zbadano bezposrednio przebieg `IPlasma` wokol `dt` dla wszystkich 3
+strzalow. 15569 i 22201 maja ten sam ksztalt: prad jest praktycznie
+plaski przez pierwsze 3-4ms po `dt`, dopiero potem gwaltownie sie
+zalamuje. **20316 jest inny** - prad zaczyna opadac plynnie juz kilka ms
+PRZED `dt` i opada dalej, zanim dojdzie do wlasciwego zalamania w tym
+samym mniej wiecej momencie. Hipoteza: ten wczesniejszy, lagodny trend
+"zaszumia" lokalne okno (1001 probek) uzywane przez
+`gradient_zscore(window=...)`, wiec sam ostry koncowy spadek jest mniej
+anomalny wzgledem juz podwyzszonego lokalnego tla.
+
+**Pierwsza proba naprawy (odrzucona, udokumentowana uczciwie)**: zamiana
+pojedynczego gradientu na sume przyrostu w oknie 5ms (1250 probek),
+znormalizowana MAD-em na calym przebiegu - dala WIECEJ falszywych wykryc,
+nie mniej (tysiace zamiast dziesiatek). Powod: mediana takiego przyrostu
+wychodzi dokladnie 0 (regulacja pradu plazmy trzyma go plasko przez
+wiekszosc probek), wiec MAD drastycznie nie docenia typowej skali
+aktywnych wahan gdzie indziej w przebiegu (sawtoothy, oscylacje) i kazde
+odejscie od 0 dostaje absurdalnie wysoki z-score.
+
+**Most (`bridge_detector()` w `model_j/model_j_detector.py`)**: zamiast
+probowac z-score'owac dluga skale (co sie zepsulo powyzej), most laczy
+DWIE JUZ ISTNIEJACE, osobno zwalidowane metryki przez AND:
+- `sustained_drop_mask()` - przesuwna wersja JUZ zwalidowanego kryterium
+  2 z Zenodo (>30% spadku od lokalnego szczytu w oknie 5ms=1250 probek) -
+  nie nowa metryka, dokladnie ten sam prog co juz sprawdzony wyzej,
+- `gradient_zscore(window=1001)` - juz istniejacy tryb lokalny.
+
+Parametry obu skladowych byly juz ustalone PRZED sprawdzeniem wyniku
+mostu na ktorymkolwiek strzale - nic tu nie zostalo dobrane pod 20316.
+
+**Uczciwy wynik mostu** (`threshold=5.0`, `exclude_start=2000`,
+zweryfikowane w `tests/test_real_tcabr.py`):
+
+| strzal | typ | wykryc razem | w tym w +-10ms od zaklocenia | klastry czasowe |
+|---|---|---|---|---|
+| 15569 | zaklocajacy | 59 | 59 (**100%**) | 2 (t=0.0623, 0.0629-0.0632) |
+| 22201 | zaklocajacy | 29 | 29 (**100%**) | 2 (t=0.1130, 0.1139-0.1141) |
+| 20316 | zaklocajacy | 4 | 4 (**100%**) | 1 (t=0.0806-0.0807) |
+| 33664 | normalny | 163 | - | 21 (rozproszone, male) |
+| 36973 | normalny | 63 | - | 2 (jeden ~57-punktowy, porownywalny z realnymi) |
+
+**Wszystkie 3 strzaly zaklocajace: 100% precyzji** - kazde pojedyncze
+wykrycie mostu jest w +-10ms od prawdziwego czasu zaklocenia, skupione w
+1-2 wyraznych klastrach czasowych (nie rozproszone jak przy samej krotkiej
+skali). To realna poprawa wzgledem 2/3 dla samej lokalnej normalizacji.
+
+**Uczciwe ograniczenie, nie przemilczane**: most NIE jest doskonalym
+klasyfikatorem. Strzal 33664 (normalny) daje 21 malych, rozproszonych
+klastrow - latwo odroznialne od pojedynczego, zwartego klastra przy
+prawdziwym zakloceniu. Ale strzal 36973 (tez normalny) daje JEDEN klaster
+~57 punktow - wielkoscia porownywalny z prawdziwymi zaklóceniami. Samo
+istnienie pojedynczego zwartego klastra nie wystarcza jako regula
+decyzyjna bez dalszej walidacji na wiekszej probie.
+
+**Co z tego wynika praktycznie**: most to realny, zdiagnozowany i
+uczciwie przetestowany krok naprzod (2/3 -> 3/3 pod wzgledem precyzji), ale
+z n=3 zaklocajacymi i n=2 normalnymi strzalami wciaz za malo, zeby
+stwierdzic, ze to gotowy klasyfikator - potrzeba wiecej realnych strzalow
+(dataset ma 435 zaklocajacych, mamy 3) do rzetelnej walidacji, zanim
+mozna by powiedziec cos wiecej niz "obiecujacy kierunek". Do realnej
+diagnostyki produkcyjnej repozytorium ma juz dzialajace, prostsze
+narzedzie - kryterium 2 samo w sobie (uzyte do policzenia
+`disruption_time_s`), bez potrzeby laczenia z Modelem J.
 
 ## Jak dodac wiecej realnych strzalow
 

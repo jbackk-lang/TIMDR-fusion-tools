@@ -247,9 +247,26 @@ lokalną, przesuwną (mediana/MAD gradientu w oknie) — odporną na
 pojedynczy duży, lokalny artefakt, który w trybie globalnym potrafi
 zdominować całą normalizację. Podłoga dla lokalnego MAD jest kalibrowana
 z własnego kroku kwantyzacji ADC sygnału (`_estimate_quantization_step()`)
-zamiast dobierana ręcznie — patrz [`data/real/README.md`](data/real/README.md)
-po pełny, uczciwy wynik tego trybu na realnych danych TCABR (działa
-częściowo: 2 z 3 realnych zakłóceń, nie 3 z 3).
+zamiast dobierana ręcznie — sam ten tryb daje na realnych danych TCABR
+wynik częściowy (2 z 3 realnych zakłóceń, nie 3 z 3).
+
+`sustained_drop_mask(signal, window=1250, drop_fraction=0.30)` — inna,
+"długa" skala: flaguje próbki, gdzie sygnał spadł o więcej niż
+`drop_fraction` względem swojego lokalnego szczytu w oknie `window` —
+przesuwna wersja już zwalidowanego kryterium klasyfikacji TCABR z Zenodo
+(>30% spadku w oknie 5ms), nie nowa metryka.
+
+`bridge_detector(signal, long_window=1250, drop_fraction=0.30, short_window=1001, short_threshold=5.0, exclude_start=2000)` —
+"most" łączący obie skale: próbka jest wykryciem tylko, gdy ZGADZAJĄ SIĘ
+OBIE (`gradient_zscore(window=short_window)` ORAZ `sustained_drop_mask()`
+naraz). Krótka skala daje precyzyjną lokalizację w czasie, długa
+odrzuca punktowe fluktuacje szumu, które nie są częścią prawdziwego,
+utrzymującego się spadku. Uczciwy wynik na realnych danych TCABR: **100%**
+wykryć mostu mieści się w ±10ms od prawdziwego czasu zakłócenia dla
+WSZYSTKICH 3 zakłócających strzałów (poprawa względem samej krótkiej
+skali: 2/3) — ale to nadal nie jest doskonały klasyfikator: na jednym z 2
+normalnych strzałów most tworzy pojedynczy, porównywalny wielkością
+fałszywy klaster. Pełny opis w [`data/real/README.md`](data/real/README.md).
 
 ---
 
@@ -309,13 +326,13 @@ faktycznie wykrywa 3 wstrzyknięte zdarzenia), endpointy API
 CSV/HDF5, limit rozmiaru, odrzucanie nieobsługiwanych rozszerzeń,
 obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
 w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
-lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny
-i lokalny/skalibrowany tryb Modelu J na realnych sygnałach, plus zgodność
-CSV-ów z surowymi `.npz` — patrz `data/real/raw/` niżej). 115/115
-testów przechodzi z danymi TCABR obecnymi lokalnie, 66/66 bez nich —
-część testów jest sparametryzowana po liście scenariuszy demo, która
-rośnie z 5 (same syntetyczne) do 20 (+ 15 realnych TCABR), stąd różnica
-większa niż tylko same testy w `test_real_tcabr.py`.
+lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny,
+lokalny/skalibrowany i mostowy tryb Modelu J na realnych sygnałach, plus
+zgodność CSV-ów z surowymi `.npz` — patrz `data/real/raw/` niżej).
+125/125 testów przechodzi z danymi TCABR obecnymi lokalnie, 72/72 bez
+nich — część testów jest sparametryzowana po liście scenariuszy demo,
+która rośnie z 5 (same syntetyczne) do 20 (+ 15 realnych TCABR), stąd
+różnica większa niż tylko same testy w `test_real_tcabr.py`.
 
 ---
 
@@ -333,14 +350,15 @@ przebieg) Model J **nie wykrywa żadnego** z 3 prawdziwych zdarzeń
 zakłóceniowych — artefakt digitizera na starcie zapisu (skok -152.6 →
 152.5 kA między pierwszymi dwiema próbkami, nie fizyka) dominuje globalne
 odchylenie standardowe gradientu. W **lokalnym, skalibrowanym** trybie
-(`window=1001` — normalizacja licząca się osobno w każdym oknie, z
-podłogą wyliczoną z własnego kroku kwantyzacji ADC sygnału, nie
-dostrojoną do żadnego znanego wyniku) sytuacja jest inna: dla 2 z 3
-strzałów zakłócających (15569, 22201) zdecydowana większość wykryć
-skupia się w wąskim oknie wokół prawdziwego czasu zakłócenia — realny
-sygnał niewidoczny w trybie globalnym. Trzeci strzał (20316) tej
-koncentracji nie pokazuje — uczciwie 2/3, nie 3/3. Pełny opis obu
-wyników w [`data/real/README.md`](data/real/README.md).
+(`window=1001`) sytuacja jest częściowa: dla 2 z 3 strzałów zakłócających
+(15569, 22201) zdecydowana większość wykryć skupia się w wąskim oknie
+wokół prawdziwego czasu zakłócenia, trzeci (20316) tej koncentracji nie
+pokazuje. W trybie **mostowym** (`bridge_detector()` — wymaga zgodności
+krótkiej i długiej skali naraz) wynik jest lepszy: **100%** wykryć mieści
+się w ±10ms od zakłócenia dla WSZYSTKICH 3 strzałów — ale nadal nie
+doskonale (jeden z 2 normalnych strzałów daje porównywalny fałszywy
+klaster). Pełny opis wszystkich trzech trybów w
+[`data/real/README.md`](data/real/README.md).
 
 ---
 

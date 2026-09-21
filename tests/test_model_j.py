@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import warnings
 
-from model_j.model_j_detector import gradient_zscore, model_j
+from model_j.model_j_detector import bridge_detector, gradient_zscore, model_j, sustained_drop_mask
 
 
 def test_model_j_empty_signal_returns_empty():
@@ -123,6 +123,61 @@ def test_estimate_quantization_step_measures_the_actual_step():
     x = np.round(np.linspace(0, 10, 500) / 0.25) * 0.25
     step = _estimate_quantization_step(x)
     assert step == pytest.approx(0.25, abs=1e-9)
+
+
+def test_sustained_drop_mask_empty_signal_returns_empty():
+    assert len(sustained_drop_mask(np.array([]))) == 0
+
+
+def test_sustained_drop_mask_flags_a_genuine_sustained_drop():
+    x = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 10.0, 50), np.full(2000, 10.0)])
+    mask = sustained_drop_mask(x, window=200, drop_fraction=0.30)
+    assert np.any(mask[2000:2100])
+
+
+def test_sustained_drop_mask_does_not_flag_a_flat_signal():
+    x = np.full(3000, 42.0)
+    mask = sustained_drop_mask(x, window=200, drop_fraction=0.30)
+    assert not np.any(mask)
+
+
+def test_bridge_detector_empty_signal_returns_empty():
+    assert len(bridge_detector(np.array([]))) == 0
+
+
+def test_bridge_detector_requires_both_scales_to_agree():
+    """A sustained RISE (passes the short/pointwise scale - large gradient
+    z-score - but can never satisfy sustained_drop_mask(), which only
+    fires on decreases from a recent peak) must not be flagged by the
+    bridge - that's the whole point of requiring both scales to agree, not
+    just one."""
+    rng = np.random.RandomState(5)
+    x = np.concatenate(
+        [
+            np.zeros(2000) + rng.normal(scale=0.01, size=2000),
+            np.linspace(0.0, 50.0, 60) + rng.normal(scale=0.01, size=60),
+            np.full(2000, 50.0) + rng.normal(scale=0.01, size=2000),
+        ]
+    )
+    result = bridge_detector(x, long_window=200, short_window=101, exclude_start=0)
+    # no detections near the rise itself (a stray chance false positive from
+    # background gaussian noise elsewhere in the signal is not the point
+    # being tested here)
+    assert not np.any((result > 1900) & (result < 2200))
+
+
+def test_bridge_detector_flags_a_genuine_sustained_drop():
+    rng = np.random.RandomState(6)
+    x = np.concatenate(
+        [
+            100.0 + rng.normal(scale=0.05, size=3000),
+            np.linspace(100.0, 5.0, 60) + rng.normal(scale=0.05, size=60),
+            5.0 + rng.normal(scale=0.05, size=3000),
+        ]
+    )
+    result = bridge_detector(x, long_window=300, short_window=201, exclude_start=0)
+    assert len(result) > 0
+    assert np.any((result > 2900) & (result < 3200))
 
 
 def test_model_j_is_exactly_the_thresholded_gradient_zscore():
