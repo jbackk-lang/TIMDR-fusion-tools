@@ -1,0 +1,7 @@
+43a02b6f78ef4b49a06b6f57b0033da526bc1d37e0b264dcbac66b51759e593b  run_mast_frozen.py
+21a6177348adb84f048d507f0e3fc3d71a6152fe394fe6f35953a2c46906507a  ADDENDUM_1.md
+908ee2f2855c9bffde050f737bc398aaa30f9e1164b2c50c42ed0dc2c5c11734  /mnt/user-data/uploads/Downloads/a/TIMDR-fusion-tools/model_j/model_j_detector.py
+68f9eb8672bfbf0186513b4c59f46e02e076c3c90e5d4feaf9f881a15527992f  /mnt/user-data/uploads/Downloads/a/DATA/mast_validation/raw_mast_batch.zip
+eb4708e42b3b1e3ad854edadceabe05577233ecbd8b9efd4b9599453bb64e569  /mnt/user-data/uploads/Downloads/a/DATA/mast_validation/shot_list_frozen.txt
+PREREGISTRATION.md 4c6082def779d3f803307a086ee150bce03ede73ba6b484399387a0c6d3bd588
+frozen_at_utc 2026-09-21T14:33:28Z

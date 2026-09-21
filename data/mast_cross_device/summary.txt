@@ -1,0 +1,12 @@
+shots=579 flipped_sign=18
+K2 pokrycie (quench_duration != None): 579/579 = 1.000  (prog >= 0.8) -> SPELNIONE
+K1 odsetek d w [7.5,30] ms: 0.111  (prog <= 0.1) -> NIESPELNIONE
+is_fast=True: 374, False: 205, None: 0
+kwantyle quench_duration [ms]: 0.00->0.4, 0.05->1.0, 0.10->1.2, 0.25->2.4, 0.50->3.0, 0.75->33.1, 0.90->88.2, 0.95->124.4, 1.00->1117.4
+histogram [ms]: (0.0, 1.0]:43; (1.0, 2.0]:61; (2.0, 3.0]:185; (3.0, 5.0]:61; (5.0, 7.5]:10; (7.5, 15.0]:14; (15.0, 30.0]:50; (30.0, 60.0]:52; (60.0, 120.0]:71; (120.0, 1000000000.0]:32
+K3 bridge_detector: liczba wykryc/strzal: {'count': 579.0, 'mean': 2.5, 'std': 2.6, 'min': 0.0, '25%': 0.0, '50%': 2.0, '75%': 4.0, 'max': 14.0}
+K3 tabela (bridge fires? x is_fast):
+is_fast   False  True
+n_bridge             
+False        58    98
+True        147   276
