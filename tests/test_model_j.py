@@ -7,6 +7,7 @@ from model_j.model_j_detector import (
     gradient_zscore,
     is_fast_quench,
     model_j,
+    phasespace_funnel_ratio,
     quench_duration,
     sustained_drop_mask,
 )
@@ -233,6 +234,67 @@ def test_is_fast_quench_false_for_gradual_decline():
 def test_is_fast_quench_returns_none_when_no_decay():
     x = np.full(500, 42.0)
     assert is_fast_quench(x) is None
+
+
+def test_phasespace_funnel_ratio_empty_signal_returns_none():
+    assert phasespace_funnel_ratio(np.array([]), np.array([])) is None
+
+
+def test_phasespace_funnel_ratio_no_decay_returns_none():
+    x = np.linspace(0, 100, 2000)  # monotonicznie rosnie, nigdy nie opada
+    y = np.random.RandomState(7).normal(size=2000)
+    assert phasespace_funnel_ratio(x, y) is None
+
+
+def test_phasespace_funnel_ratio_detects_expanding_trajectory():
+    """Konstrukcja: primary ma zwykly, szybki zanik (jak w
+    quench_duration); secondary w tym samym oknie oscyluje z ROSNACA
+    amplituda - promien wzgledem centroidu (primary, secondary) powinien
+    byc wyraznie wiekszy na koncu okna niz na poczatku."""
+    primary = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 200), np.full(2000, 0.0)])
+    idx_high, idx_low = 2060, 2180  # zweryfikowane bezposrednio dla tej konstrukcji
+    n = idx_low - idx_high
+    local = np.arange(n, dtype=float)
+    secondary = np.zeros(4200)
+    secondary[idx_high:idx_low] = local * np.sin(local * 1.3)  # amplituda rosnie 0 -> n
+
+    ratio = phasespace_funnel_ratio(primary, secondary, exclude_start=0, smooth_window=1)
+    assert ratio is not None
+    assert ratio > 1.5
+
+
+def test_phasespace_funnel_ratio_detects_contracting_trajectory():
+    """Lustrzane odwrocenie powyzszego - amplituda MALEJACA -> promien
+    powinien byc mniejszy na koncu okna niz na poczatku (ratio < 1)."""
+    primary = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 200), np.full(2000, 0.0)])
+    idx_high, idx_low = 2060, 2180
+    n = idx_low - idx_high
+    local = np.arange(n, dtype=float)
+    secondary = np.zeros(4200)
+    secondary[idx_high:idx_low] = (n - local) * np.sin(local * 1.3)  # amplituda maleje n -> 0
+
+    ratio = phasespace_funnel_ratio(primary, secondary, exclude_start=0, smooth_window=1)
+    assert ratio is not None
+    assert ratio < 0.7
+
+
+def test_phasespace_funnel_ratio_uses_same_decay_window_as_quench_duration():
+    """phasespace_funnel_ratio() musi uzywac TEGO SAMEGO okna co
+    quench_duration() (dzielonej _decay_window_bounds()), nie osobno
+    wymyslonej definicji - regresja przeciw przypadkowemu rozjechaniu sie
+    obu funkcji w przyszlej edycji."""
+    from model_j.model_j_detector import _decay_window_bounds
+
+    primary = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 200), np.full(2000, 0.0)])
+    secondary = np.random.RandomState(9).normal(size=4200)
+
+    bounds = _decay_window_bounds(primary, exclude_start=0, smooth_window=1)
+    duration = quench_duration(primary, dt=1.0, smooth_window=1)
+    ratio = phasespace_funnel_ratio(primary, secondary, exclude_start=0, smooth_window=1)
+
+    assert bounds is not None
+    assert duration == pytest.approx(bounds[1] - bounds[0])
+    assert ratio is not None  # samo policzenie sie powiodlo na tym samym oknie
 
 
 def test_model_j_is_exactly_the_thresholded_gradient_zscore():

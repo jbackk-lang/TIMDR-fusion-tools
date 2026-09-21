@@ -26,7 +26,13 @@ from fastapi.staticfiles import StaticFiles
 
 from demo.scenarios import generate_scenario, list_scenarios
 from latro.latro_core import latro, latro_windowed
-from model_j.model_j_detector import gradient_zscore, model_j
+from model_j.model_j_detector import (
+    gradient_zscore,
+    is_fast_quench,
+    model_j,
+    phasespace_funnel_ratio,
+    quench_duration,
+)
 from timdr.timdr_filter import timdr
 
 # load_hdf5() (parsers/hdf5_parser.py) importuje h5py. h5py to zewnetrzny
@@ -267,7 +273,40 @@ def _zscore_histogram(signal_arr, threshold, bins=40):
     }
 
 
-def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None):
+def _geometric_features(signal_arr, dt, secondary_signal=None, secondary_note=None):
+    """
+    Panel "Detektor geometryczny" w dashboardzie - quench_duration()/
+    is_fast_quench() i (jesli dostepny drugi kanal) phasespace_funnel_ratio()
+    z model_j/model_j_detector.py. Liczone dla KAZDEGO sygnalu (nie tylko
+    realnych danych TCABR) - na syntetycznych/wgranych sygnalach wynik
+    zwykle bedzie None (brak wykrytego zaniku po szczycie), co jest
+    poprawnym, oczekiwanym zachowaniem, nie bledem.
+
+    `exclude_start=0` tutaj (w odroznieniu od exclude_start=2000 uzywanego
+    w testach na surowych danych TCABR) - dashboard nie zaklada z gory,
+    ze pierwsze probki sa artefaktem digitizera (to zalezy od zrodla
+    danych, ktore tu moze byc dowolne).
+
+    `secondary_signal`/`secondary_note` - opcjonalny drugi kanal (np.
+    VLoop dla portretu fazowego z IPlasma) i informacja, skad pochodzi
+    (albo dlaczego go nie ma) - do wyswietlenia w dashboardzie.
+    """
+    qd = quench_duration(signal_arr, dt=dt, exclude_start=0)
+    fast = is_fast_quench(signal_arr, dt=dt, exclude_start=0) if qd is not None else None
+
+    funnel_ratio = None
+    if secondary_signal is not None and len(secondary_signal) == len(signal_arr):
+        funnel_ratio = phasespace_funnel_ratio(signal_arr, secondary_signal, exclude_start=0)
+
+    return {
+        "quench_duration_s": qd,
+        "is_fast_quench": fast,
+        "funnel_ratio": funnel_ratio,
+        "funnel_ratio_note": secondary_note,
+    }
+
+
+def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None, secondary_signal=None, secondary_note=None):
     n = len(signal_arr)
     if n == 0:
         raise HTTPException(400, "Sygnal jest pusty.")
@@ -288,6 +327,7 @@ def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None
     zscore_hist = _zscore_histogram(signal_arr, threshold)
 
     description = _describe_result(t, signal_arr, window, reduced, lam, tau, rho, points, rhos_w)
+    geometric = _geometric_features(signal_arr, dt, secondary_signal=secondary_signal, secondary_note=secondary_note)
 
     result = {
         "n_samples": n,
@@ -311,6 +351,7 @@ def _run_pipeline(time_arr, signal_arr, window, threshold, drop_last, extra=None
         "description": description,
         "spectrum": spectrum,
         "model_j_zscore_hist": zscore_hist,
+        "geometric": geometric,
     }
     if extra:
         result.update(extra)
@@ -390,8 +431,32 @@ async def analyze(
             raise HTTPException(
                 400, f"Nieznany scenariusz '{scenario_id}'. Dostepne: {available}"
             )
+
+        # phasespace_funnel_ratio() potrzebuje DRUGIEGO kanalu (np. VLoop
+        # obok IPlasma) - dostepne tylko dla realnych scenariuszy TCABR
+        # (source="real:tcabr:...", metadane maja "channel"/"shot_id").
+        # Jesli aktualny scenariusz to IPlasma danego strzalu, sprobuj
+        # dociagnac VLoop TEGO SAMEGO strzalu; w kazdym innym przypadku
+        # (syntetyczne demo, inny kanal, brak siostrzanego scenariusza)
+        # po prostu nie licz funnel_ratio (zostanie None) zamiast zgadywac.
+        secondary_signal, secondary_note = None, None
+        if scenario_meta.get("channel") == "IPlasma" and scenario_meta.get("shot_id"):
+            sibling_id = f"tcabr_{scenario_meta['shot_id']}_VLoop"
+            try:
+                _t_v, secondary_signal, _m_v = generate_scenario(sibling_id)
+                secondary_note = f"portret fazowy z {sibling_id}"
+            except KeyError:
+                secondary_note = f"brak scenariusza {sibling_id} - funnel_ratio niedostepny"
+
         return _run_pipeline(
-            time_arr, signal_arr, window, threshold, drop_last, extra={"scenario": scenario_meta}
+            time_arr,
+            signal_arr,
+            window,
+            threshold,
+            drop_last,
+            extra={"scenario": scenario_meta},
+            secondary_signal=secondary_signal,
+            secondary_note=secondary_note,
         )
 
     name = file.filename.lower()

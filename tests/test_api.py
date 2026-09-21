@@ -267,6 +267,41 @@ def test_analyze_model_j_zscore_histogram_flat_for_constant_signal():
     assert hist["counts"] == []
 
 
+def test_analyze_response_includes_geometric_field_with_none_on_synthetic_signal():
+    """Syntetyczny baseline nie ma prawdziwego zaniku po szczycie - pole
+    'geometric' musi byc obecne, ale quench_duration_s/funnel_ratio
+    None (nie blad, nie brakujace pole)."""
+    resp = client.post("/analyze", data={"use_example": "true", "window": 64, "threshold": 2.0})
+    assert resp.status_code == 200
+    geo = resp.json()["geometric"]
+    assert "quench_duration_s" in geo
+    assert "is_fast_quench" in geo
+    assert "funnel_ratio" in geo
+
+
+def test_analyze_geometric_funnel_ratio_uses_sibling_vloop_channel_when_available():
+    """Jesli lokalne dane TCABR sa obecne, scenariusz '<shot>_IPlasma'
+    powinien automatycznie dociagnac '<shot>_VLoop' i policzyc
+    funnel_ratio - jesli danych nie ma lokalnie, scenariusz w ogole nie
+    istnieje (400), test jest wtedy pomijany."""
+    resp = client.get("/scenarios")
+    ids = {s["id"] for s in resp.json()["scenarios"]}
+    iplasma_ids = [sid for sid in ids if sid.startswith("tcabr_") and sid.endswith("_IPlasma")]
+    if not iplasma_ids:
+        import pytest
+
+        pytest.skip("realne dane TCABR nie sa obecne lokalnie")
+
+    resp = client.post("/analyze", data={"scenario": iplasma_ids[0], "window": 1001, "threshold": 5.0})
+    assert resp.status_code == 200
+    geo = resp.json()["geometric"]
+    # albo policzony (float), albo jawnie None z powodem w funnel_ratio_note -
+    # nigdy brakujacy klucz ani cichy blad
+    assert geo["funnel_ratio"] is None or isinstance(geo["funnel_ratio"], float)
+    if geo["funnel_ratio"] is None:
+        assert geo["funnel_ratio_note"] is not None
+
+
 def test_scenarios_compare_endpoint_returns_all_scenarios():
     resp = client.get("/scenarios/compare", params={"window": 64, "threshold": 2.0})
     assert resp.status_code == 200

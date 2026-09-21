@@ -1,6 +1,9 @@
 """
 Validation of quench_duration()/is_fast_quench() (model_j/model_j_detector.py)
-on ALL 35 real TCABR shots - a genuinely different kind of feature than
+on ALL 54 real TCABR shots (35 original + 19 genuinely held-out, added
+AFTER the function/threshold were frozen - see
+tests/test_real_tcabr_batch3_geometric.py for the explicit held-out
+validation report) - a genuinely different kind of feature than
 gradient_zscore()/bridge_detector() (those look at local, pointwise/windowed
 deviations; this looks at the SHAPE of the decay after the peak). See
 data/real/README.md, section "Geometria ksztaltu: czas zaniku" for the full
@@ -36,7 +39,7 @@ def test_fast_disruptive_shots_are_classified_as_fast_quench(_tcabr_meta=None):
 
     meta = json.load(open(TCABR_METADATA_PATH))
     disruptive_ids = [s for s in _all_shot_ids(meta, True) if s != SLOW_DISRUPTIVE_OUTLIER]
-    assert len(disruptive_ids) == 22
+    assert len(disruptive_ids) == 36  # 37 zaklocajacych - 1 znany wyjatek (21918)
 
     wrong = []
     for shot in disruptive_ids:
@@ -76,7 +79,7 @@ def test_all_normal_shots_are_classified_as_not_fast_quench():
 
     meta = json.load(open(TCABR_METADATA_PATH))
     normal_ids = _all_shot_ids(meta, False)
-    assert len(normal_ids) == 12
+    assert len(normal_ids) == 17
 
     wrong = []
     for shot in normal_ids:
@@ -87,16 +90,17 @@ def test_all_normal_shots_are_classified_as_not_fast_quench():
             wrong.append((shot, result))
     assert wrong == [], (
         f"oczekiwano is_fast_quench=False (kontrolowany, lagodny koniec wyladowania) dla "
-        f"wszystkich 12 normalnych strzalow, zawiodly: {wrong}"
+        f"wszystkich 17 normalnych strzalow, zawiodly: {wrong}"
     )
 
 
 def test_quench_duration_margin_between_classes_is_large():
     """
-    Sprawdza sam margines, nie tylko klasyfikacje przy jednym progu - 22
-    'szybkich' zaklocajacych strzalow powinno miescic sie w duzo mniejszym
-    zakresie niz wszystkie 12 normalnych, z duza przerwa miedzy nimi
-    (>5x, patrz data/real/README.md: ~0.9-3.1ms vs ~19.1-38.4ms)."""
+    Sprawdza sam margines, nie tylko klasyfikacje przy jednym progu - 36
+    'szybkich' zaklocajacych strzalow (22 pierwotne + 14 nowych,
+    wykluczajac jedyny znany wyjatek 21918) powinno miescic sie w duzo
+    mniejszym zakresie niz wszystkie 17 normalnych, z duza przerwa miedzy
+    nimi (>5x, patrz data/real/README.md: ~0.6-3.4ms vs ~19.1-38.4ms)."""
     import json
 
     meta = json.load(open(TCABR_METADATA_PATH))

@@ -1,21 +1,58 @@
 # fusion-tools
 
-Narzędzia do analizy sygnałów z diagnostyki plazmy (W7-X, JET, DIII-D, EAST)
-oparte na TIMDR (redukcja informacji), Λ-τ-ρ (metryki strukturalne
-sygnału) oraz Model J (detekcja punktów skrętu).
+**Klasyfikator zakłóceń plazmy (TCABR)** zbudowany i zwalidowany na
+realnych danych, plus ogólny toolkit do analizy sygnałów z diagnostyki
+plazmy (W7-X, JET, DIII-D, EAST) oparty na TIMDR (redukcja informacji),
+Λ-τ-ρ (metryki strukturalne sygnału) oraz Model J (detekcja punktów
+skrętu) — narzędzia, na których klasyfikator jest zbudowany.
+
+---
+
+## Klasyfikacja zakłóceń TCABR — wynik
+
+Trzy niezależne metody, każda zbudowana na oryginalnym (małym) zbiorze
+danych z parametrami zamrożonymi PRZED zobraniem kolejnych, wcześniej
+niewidzianych strzałów — i każda faktycznie sprawdzona na tych nowych
+danych, nie tylko na tych, na których powstała. Pełny opis, wszystkie
+odrzucone próby i uczciwe ograniczenia: [`data/real/README.md`](data/real/README.md).
+
+| metoda | co robi | wynik held-out (nowe, wcześniej niewidziane strzały) |
+|---|---|---|
+| `is_fast_quench()` (kształt zaniku, `model_j/model_j_detector.py`) | **Klasyfikuje** zakłócający vs. normalny strzał po czasie zaniku prądu po szczycie | **19/19 (100%)** na 19 nowych strzałach — 0 błędów |
+| `phasespace_funnel_ratio()` (portret fazowy I,V) | **Klasyfikuje** po tym, czy trajektoria (prąd, napięcie) rozszerza się czy nie | **12/14 (86%) czułość, 5/5 (100%) swoistość** na tych samych 19 nowych strzałach |
+| `bridge_detector()` (dwie skale czasowe) | **Lokalizuje** już znane zakłócenie w czasie (nie odróżnia zakłócenia od normalnego strzału) | **100% precyzji lokalizacji** na 3 oryginalnych, **80% pełny sukces / 96,8% średnia precyzja** na 30 nowych |
+
+Na pełnym, połączonym zbiorze **54 realnych strzałów TCABR** (37
+zakłócających + 17 normalnych, 162 sygnały): `is_fast_quench()`
+poprawnie klasyfikuje 36/37 zakłócających (jeden udokumentowany,
+nienaprawiony wyjątek — strzał 21918, nietypowo wolne zakłócenie) i
+17/17 normalnych.
+
+**Uczciwe zastrzeżenie**: `is_fast_quench()`/`phasespace_funnel_ratio()`
+odróżniają zakłócający strzał od normalnego (klasyfikacja). `bridge_detector()`
+lokalizuje zakłócenie W CZASIE, gdy już wiadomo, że tam jest — to inne
+zadanie, nie gotowy klasyfikator. Obie klasy metod uzupełniają się, nie
+zastępują.
+
+Wynik widoczny live w dashboardzie (panel "Detektor geometryczny" — patrz
+niżej) dla dowolnego scenariusza TCABR.
 
 ---
 
 ## Cele projektu
 
+- **klasyfikacja/detekcja zakłóceń plazmy na realnych danych TCABR**
+  (patrz wyżej) — flagowy, zwalidowany wynik tego repozytorium,
 - redukcja szumu i nadmiarowości sygnałów z diagnostyk plazmy (TIMDR),
 - ekstrakcja prostych cech strukturalnych sygnału (Λ-τ-ρ),
-- detekcja punktów skrętu / gwałtownych zmian dynamiki (Model J),
+- detekcja punktów skrętu / gwałtownych zmian dynamiki (Model J) — baza,
+  na której zbudowane są `bridge_detector()`/`quench_duration()`/
+  `phasespace_funnel_ratio()` wyżej,
 - wczytywanie danych w formatach używanych w fuzji (CSV, HDF5, MDSplus).
 
 Domyślny przykładowy sygnał (`data/w7x_mirnov_example.csv`) jest
-syntetyczny. Repozytorium zawiera też realne dane (TCABR) — patrz sekcja
-"Realne dane (TCABR)" niżej.
+syntetyczny. Realne dane TCABR — patrz sekcja "Realne dane (TCABR)" niżej
+i [`data/real/README.md`](data/real/README.md) po pełny opis.
 
 ---
 
@@ -38,7 +75,7 @@ fusion-tools/
 ├── latro/                      # metryki strukturalne Λ-τ-ρ
 │   ├── latro_core.py
 │   └── latro_features.py
-├── model_j/                    # detekcja punktów skrętu
+├── model_j/                    # detekcja punktów skrętu + klasyfikator zakłóceń TCABR
 │   └── model_j_detector.py
 ├── demo/                       # scenariusze demo + działające demo (skrypt + notebook)
 │   ├── scenarios.py
@@ -77,7 +114,7 @@ deweloperskim).
 Webowy dashboard (FastAPI + Chart.js, zvendorowany lokalnie w
 `static/vendor/` — działa bez internetu) nad tym samym pipeline'em, z
 wyborem scenariusza demo, wgrywaniem własnego pliku (CSV lub HDF5), albo
-realnych danych TCABR.
+realnych danych TCABR — w tym panelem klasyfikatora zakłóceń.
 
 **Windows:** dwuklik na `run.bat` — tworzy `.venv`, instaluje zależności,
 startuje serwer i otwiera przeglądarkę.
@@ -109,13 +146,17 @@ Co pokazuje dashboard:
 4. **Histogram z-score gradientu** — rozkład dokładnie tej wartości, którą
    progowuje Model J (`gradient_zscore()`, patrz niżej) — pokazuje GDZIE
    próg faktycznie "odcina" rozkład, nie tylko finalną liczbę wykryć.
-5. **Opis wyniku** — krótki, deterministyczny opis po polsku generowany z
+5. **Detektor geometryczny (kształt zaniku)** — wynik `is_fast_quench()`/
+   `quench_duration()` (klasyfikacja: szybki/wolny zanik) oraz, gdy
+   dostępny jest siostrzany kanał VLoop, `phasespace_funnel_ratio()`
+   (portret fazowy I,V) — patrz "Klasyfikacja zakłóceń TCABR" wyżej.
+6. **Opis wyniku** — krótki, deterministyczny opis po polsku generowany z
    policzonych statystyk (bez wywołania LLM): liczba próbek i redukcja,
    zakres wartości, liczba wykrytych punktów Modelu J pogrupowana w
    odrębne zdarzenia w czasie, oraz kierunek zmiany energii (ρ) między
    początkiem a końcem sygnału. Kończy się zastrzeżeniem, że to opis
    statystyczny, nie interpretacja fizyczna MHD.
-6. **Porównanie scenariuszy demo** — osobny panel, który uruchamia
+7. **Porównanie scenariuszy demo** — osobny panel, który uruchamia
    Λ-τ-ρ i Model J na WSZYSTKICH scenariuszach demo naraz (ten sam
    window/threshold z formularza) i pokazuje wynik jako wykres słupkowy
    (liczba punktów Modelu J) plus tabelę (`GET /scenarios/compare`).
@@ -133,8 +174,8 @@ Dashboard ma selektor scenariuszy zamiast jednego wbudowanego sygnału
 | `growing_mode` | Oscylacja o amplitudzie rosnącej wykładniczo (dobry przykład na wykres dryfu ρ). |
 | `noisy_flat` | Sam szum, większa amplituda niż `quiet`, zero struktury. |
 
-Kolejnych 15 to realne dane TCABR (`tcabr_<shot>_<kanał>`) — patrz sekcja
-"Realne dane (TCABR)" niżej.
+Kolejnych 162 to realne dane TCABR (`tcabr_<shot>_<kanał>`, 54 strzały ×
+3 kanały) — patrz sekcja "Realne dane (TCABR)" niżej.
 
 **Obserwacja z panelu porównania**: przy domyślnym progu 2.0 `quiet` (sam
 szum, ZERO prawdziwych zdarzeń) daje ok. 90-100 "wykryć" Modelu J na 2000
@@ -177,6 +218,8 @@ Endpointy API:
 Odpowiedź `/analyze` zawiera dodatkowo: `latro_windowed` (`{x, lambda,
 tau, rho}` per okno), `spectrum` (`{freq, magnitude}`, FFT bez składowej
 DC), `model_j_zscore_hist` (`{bin_edges, counts, is_flat, threshold}`),
+`geometric` (`{quench_duration_s, is_fast_quench, funnel_ratio,
+funnel_ratio_note}` — wynik klasyfikatora zakłóceń, patrz wyżej),
 `description` (opis tekstowy), `scenario` (metadane wybranego scenariusza
 demo — tylko gdy nie wgrano pliku) oraz — tylko dla wgranego HDF5 —
 `hdf5_info` (`available_datasets`, `signal_dataset`, `time_dataset`,
@@ -227,7 +270,7 @@ osobno dla każdego kolejnego okna sygnału (ten sam podział na okna co
 tego, żeby zobaczyć jak Λ-τ-ρ **zmieniają się w czasie**, nie tylko ich
 średnią (używane przez dashboard do wykresu "dryfu").
 
-### `model_j/`
+### `model_j/` — detekcja punktów skrętu i klasyfikator zakłóceń TCABR
 
 `gradient_zscore(signal)` — liczy gradient sygnału i zwraca jego z-score
 (`(grad - mean) / std`), z zabezpieczeniem przed dzieleniem przez zero
@@ -261,28 +304,37 @@ przesuwna wersja już zwalidowanego kryterium klasyfikacji TCABR z Zenodo
 OBIE (`gradient_zscore(window=short_window)` ORAZ `sustained_drop_mask()`
 naraz). Krótka skala daje precyzyjną lokalizację w czasie, długa
 odrzuca punktowe fluktuacje szumu, które nie są częścią prawdziwego,
-utrzymującego się spadku. Uczciwy wynik na realnych danych TCABR: **100%**
-wykryć mostu mieści się w ±10ms od prawdziwego czasu zakłócenia dla
-WSZYSTKICH 3 zakłócających strzałów (poprawa względem samej krótkiej
-skali: 2/3) — ale to nadal nie jest doskonały klasyfikator: na jednym z 2
-normalnych strzałów most tworzy pojedynczy, porównywalny wielkością
-fałszywy klaster. Pełny opis w [`data/real/README.md`](data/real/README.md).
+utrzymującego się spadku. **Lokalizuje zakłócenie w czasie, nie
+klasyfikuje strzału** (patrz "Klasyfikacja zakłóceń TCABR" wyżej) — 100%
+precyzji lokalizacji na oryginalnych 3 zakłócających strzałach, 80% pełny
+sukces / 96,8% średnia precyzja na 30 nowych, wcześniej niewidzianych.
 
 `quench_duration(signal, dt=1.0, fraction_high=0.70, fraction_low=0.10, smooth_window=51, exclude_start=0)` —
-zupełnie inna, GEOMETRYCZNA cecha: czas (w jednostkach `dt`), w jakim
-WYGŁADZONY sygnał (średnia ruchoma) opada od 70% do 10% swojej wartości
-szczytowej po `exclude_start`. Wygładzanie jest konieczne — bez niego
-pojedyncze wybuchy oscylacji tuż po szczycie dają fałszywe, zbyt wczesne
-przejścia przez progi. Zwraca `None`, gdy któryś próg nie zostanie
-przekroczony. `is_fast_quench(signal, dt=1.0, duration_threshold=0.015, **kwargs)`
-progowuje ten czas (prog 15ms wyznaczony wprost z przerwy między
-zaobserwowanymi zakresami, nie dopasowany do żadnego przypadku). Na
-realnych danych TCABR: 22 z 23 zakłócających strzałów mają zanik
-0,9–3,1ms, wszystkie 12 normalnych — wolny rampdown 19–38ms (margines
->6x); jeden zakłócający strzał (21918) ma nietypowo wolny zanik (~27,6ms)
-i jest uczciwie, udokumentowanie błędnie klasyfikowany. Pełny opis w
-[`data/real/README.md`](data/real/README.md), sekcja "Geometria kształtu:
-czas zaniku".
+GEOMETRYCZNA cecha: czas (w jednostkach `dt`), w jakim WYGŁADZONY sygnał
+(średnia ruchoma) opada od 70% do 10% swojej wartości szczytowej po
+`exclude_start`. Zwraca `None`, gdy któryś próg nie zostanie przekroczony.
+
+`is_fast_quench(signal, dt=1.0, duration_threshold=0.015, **kwargs)` —
+**klasyfikator** oparty na `quench_duration()` (próg 15ms wyznaczony
+wprost z przerwy między zaobserwowanymi zakresami, nie dopasowany do
+żadnego przypadku). Na 54 realnych strzałach TCABR (35 oryginalnych + 19
+held-out): 36/37 zakłócających poprawnie `True` (jeden udokumentowany
+wyjątek, strzał 21918 — nietypowo wolne zakłócenie, ~27,6ms), 17/17
+normalnych poprawnie `False`. Na samych 19 held-out: **19/19, bez ani
+jednej pomyłki**.
+
+`phasespace_funnel_ratio(primary_signal, secondary_signal, exclude_start=2000, smooth_window=51, fraction_high=0.70, fraction_low=0.10, edge_fraction=0.10)` —
+**klasyfikator** oparty na portrecie fazowym dwóch kanałów (np. IPlasma +
+VLoop, fizycznie uzasadnione przez V≈L·dI/dt): stosunek promienia
+trajektorii (I,V) względem jej centroidu na końcu vs. początku okna
+zaniku. Znaleziony eksploracyjnie na oryginalnych 35 strzałach, następnie
+**faktycznie zwalidowany held-out** na 19 nowych: 12/14 (86%) czułość,
+5/5 (100%) swoistość, próg 1.65. Mniejsza podstawa dowodowa niż
+`is_fast_quench()` (jedna runda walidacji held-out) — status i pełne
+zastrzeżenia w [`data/real/README.md`](data/real/README.md).
+
+Pełny opis wszystkich metod, odrzuconych prób i uczciwych ograniczeń:
+[`data/real/README.md`](data/real/README.md).
 
 ---
 
@@ -313,7 +365,7 @@ w komentarzach) — to samo, co jest w `timdr/`, `latro/`, `model_j/`.
 from parsers.csv_parser import load_csv
 from timdr.timdr_filter import timdr
 from latro.latro_core import latro
-from model_j.model_j_detector import model_j
+from model_j.model_j_detector import model_j, is_fast_quench
 
 time, signal = load_csv("data/w7x_mirnov_example.csv")
 
@@ -323,6 +375,11 @@ points = model_j(signal, threshold=2.0)
 
 print("Λ-τ-ρ:", lam, tau, rho)
 print("Punkty Modelu J:", list(points)[:10])
+
+# Klasyfikacja zakłóceń na realnym sygnale TCABR (IPlasma) - patrz
+# data/real/README.md po dt/exclude_start uzywane przy walidacji:
+# dt_sample = t[1] - t[0]
+# is_fast_quench(signal, dt=dt_sample, duration_threshold=0.015, exclude_start=2000)
 ```
 
 ---
@@ -340,58 +397,53 @@ pełny pipeline end-to-end na przykładowym sygnale (sprawdza, że Model J
 faktycznie wykrywa 3 wstrzyknięte zdarzenia), endpointy API
 (`tests/test_api.py` — `/analyze` na przykładzie/scenariuszu/wgranym
 CSV/HDF5, limit rozmiaru, odrzucanie nieobsługiwanych rozszerzeń,
-obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
-w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
-lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny,
-lokalny/skalibrowany i mostowy tryb Modelu J na realnych sygnałach, plus
-zgodność CSV-ów z surowymi `.npz`), `tests/test_real_tcabr_batch2.py`
-(niezależna walidacja mostu na 30 wcześniej niewidzianych strzałach) oraz
-`tests/test_real_tcabr_quench_duration.py` (walidacja `quench_duration()`/
-`is_fast_quench()` na wszystkich 35 realnych strzałach — patrz
-`data/real/raw/` i `data/real/README.md` niżej). 339/339 testów
-przechodzi z danymi TCABR obecnymi lokalnie, 80/80 bez nich (49
-pominiętych) — część
-testów jest sparametryzowana po liście scenariuszy demo, która rośnie z 5
-(same syntetyczne) do 40 (+ 35 realnych TCABR), stąd różnica większa niż
-tylko same testy w `test_real_tcabr*.py`.
+obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`geometric`/
+`description` w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`),
+oraz — jeśli lokalnie obecne realne dane TCABR —
+`tests/test_real_tcabr.py` (globalny, lokalny/skalibrowany i mostowy tryb
+Modelu J na realnych sygnałach, plus zgodność CSV-ów z surowymi `.npz`),
+`tests/test_real_tcabr_batch2.py` (niezależna walidacja mostu na 30
+wcześniej niewidzianych strzałach), `tests/test_real_tcabr_quench_duration.py`
+(walidacja `quench_duration()`/`is_fast_quench()` na wszystkich 54
+realnych strzałach), `tests/test_real_tcabr_phasespace.py` (walidacja
+`phasespace_funnel_ratio()` na tych samych 54) oraz
+`tests/test_real_tcabr_batch3_geometric.py` (jawna, held-out walidacja
+OBU klasyfikatorów geometrycznych na 19 najnowszych, wcześniej
+niewidzianych strzałach, w tym regresyjny test bit-exact CSV-ów tej
+partii — patrz `data/real/raw/` i `data/real/README.md` niżej).
+**469/469** testów przechodzi z danymi TCABR obecnymi lokalnie,
+**86/86** bez nich (59 pominiętych) — część testów jest sparametryzowana
+po liście scenariuszy demo, która rośnie z 5 (same syntetyczne) do 167
+(+ 162 realnych TCABR), stąd różnica większa niż tylko same testy w
+`test_real_tcabr*.py`.
 
 ---
 
 ## Realne dane (TCABR)
 
-`data/real/` zawiera 105 PRAWDZIWYCH sygnałów (35 wyładowań × 3 kanały —
+`data/real/` zawiera 162 PRAWDZIWE sygnały (54 wyładowania × 3 kanały —
 `IPlasma`, `VLoop`, `BbMirnovN01`) z tokamaka TCABR (Zenodo, DOI
 10.5281/zenodo.21843354, CC-BY 4.0), widoczne w dashboardzie jako
-scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. 23 wyładowania są
-zakłócające (z niezależnie wyznaczonym czasem zakłócenia), 12 normalnych.
+scenariusze `tcabr_<shot>_<kanał>` obok syntetycznych. 37 wyładowań jest
+zakłócających (z niezależnie wyznaczonym czasem zakłócenia), 17 normalnych,
+zebranych w czterech partiach (patrz [`data/real/README.md`](data/real/README.md)
+po pełną tabelę i historię).
 
-**Wynik testu — trzy tryby Modelu J**: w domyślnym, **globalnym** trybie
-(`gradient_zscore()`, jedna normalizacja na cały przebieg) Model J **nie
-wykrywa żadnego** z prawdziwych zdarzeń zakłóceniowych — artefakt
-digitizera na starcie zapisu dominuje globalne odchylenie standardowe
-gradientu. W **lokalnym, skalibrowanym** trybie (`window=1001`) wynik
-jest częściowy (2 z 3 pierwszych strzałów). W trybie **mostowym**
-(`bridge_detector()` — wymaga zgodności krótkiej i długiej skali naraz)
-zbudowanym na pierwszych 5 strzałach: **100%** precyzji na wszystkich 3.
+**Trzy tryby Modelu J (lokalizacja, nie klasyfikacja)**: w domyślnym,
+**globalnym** trybie (`gradient_zscore()`, jedna normalizacja na cały
+przebieg) Model J **nie wykrywa żadnego** z prawdziwych zdarzeń
+zakłóceniowych — artefakt digitizera na starcie zapisu dominuje globalne
+odchylenie standardowe gradientu. W **lokalnym, skalibrowanym** trybie
+(`window=1001`) wynik jest częściowy (2 z 3 pierwszych strzałów). W
+trybie **mostowym** (`bridge_detector()`) zbudowanym na pierwszych 5
+strzałach: 100% precyzji lokalizacji na wszystkich 3, zwalidowane na 30
+nowych (80% pełny sukces / 96,8% średnia precyzja) — ale to lokalizacja
+W CZASIE już znanego zakłócenia, nie klasyfikacja "czy to zakłócenie".
 
-**Niezależna walidacja na 30 kolejnych, wcześniej niewidzianych
-strzałach** (parametry mostu niezmienione): 16/20 (80%) nowych
-zakłócających strzałów — 100% precyzji, średnia precyzja tam gdzie były
-wykrycia — 96,8%, 2/20 — brak wykryć (zdiagnozowane, ten sam mechanizm co
-przy strzale 20316). Ważne zastrzeżenie: to precyzja LOKALIZACJI w obrębie
-już znanego zakłócenia, nie swoistość klasyfikatora — na 10 nowych
-normalnych strzałach most nadal generuje wykrycia, część porównywalnych
-wielkością z prawdziwymi zakłóceniami.
-
-**Geometria kształtu (`quench_duration()`/`is_fast_quench()`)** — inna,
-silniejsza cecha niż powyższe: czas zaniku WYGŁADZONEGO sygnału po
-szczycie. Na wszystkich 35 strzałach: 22 z 23 zakłócających mają zanik
-0,9–3,1ms, wszystkie 12 normalnych — wolny rampdown 19–38ms (margines
->6x) — pierwszy wynik w tym repo, który odróżnia zakłócający strzał od
-normalnego, nie tylko lokalizuje zakłócenie w czasie. Jeden zakłócający
-strzał (21918, zanik ~27,6ms) jest uczciwie, udokumentowanie błędnie
-klasyfikowany jako "wolny". Pełny, szczegółowy opis wszystkich trybów i
-wyniku walidacji w [`data/real/README.md`](data/real/README.md).
+**Klasyfikacja (`is_fast_quench()`/`phasespace_funnel_ratio()`)** — patrz
+sekcja "Klasyfikacja zakłóceń TCABR" na górze tego pliku po pełne liczby.
+Pełny, szczegółowy opis wszystkich metod, odrzuconych prób i wyniku
+walidacji w [`data/real/README.md`](data/real/README.md).
 
 ---
 
@@ -406,6 +458,12 @@ wyniku walidacji w [`data/real/README.md`](data/real/README.md).
   zweryfikowania na prawdziwych danych, nie potwierdzonym wynikiem.
   "Opis wyniku" w dashboardzie to czysto statystyczne podsumowanie
   (liczby, zakresy, trend) — nie diagnoza plazmy.
+- `is_fast_quench()` ma jeden udokumentowany, nienaprawiony wyjątek
+  (strzał 21918) — nie jest to klasyfikator ze 100% skutecznością na
+  wszystkich znanych przypadkach.
+- `phasespace_funnel_ratio()` ma mniejszą podstawę dowodową niż
+  `is_fast_quench()`/`bridge_detector()` (jedna runda walidacji held-out,
+  19 strzałów) i nie jest doskonały (2 fałszywie ujemne na tej rundzie).
 - Wgrywanie HDF5 w `/analyze` ładuje **wszystkie** datasety pliku do
   pamięci naraz (`load_hdf5()` z `parsers/hdf5_parser.py` robi to
   eagerly) zanim wybierze, który jest sygnałem — dla pliku z dużą liczbą

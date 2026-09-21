@@ -110,6 +110,12 @@
   </div>
 
   <div class="panel">
+    <h2>Detektor geometryczny (kszta&#322;t zaniku)</h2>
+    <div class="sub" style="margin-bottom:8px;">Dwie cechy inne ni&#380; z-score gradientu (Model J): czas zaniku po szczycie i - je&#347;li dost&#281;pny drugi kana&#322; (VLoop obok IPlasma) - portret fazowy. Zwalidowane na realnych danych TCABR (patrz data/real/README.md); na syntetycznych/wgranych sygna&#322;ach zwykle nie wykryj&#261; zaniku (wynik "-", to poprawne zachowanie).</div>
+    <div id="geometric" style="font-size:13.5px; line-height:1.8; color:#d6dbe4;">Uruchom analiz&#281;, &#380;eby zobaczy&#263; wynik.</div>
+  </div>
+
+  <div class="panel">
     <h2>Por&oacute;wnanie wszystkich scenariuszy demo</h2>
     <div class="sub" style="margin-bottom:8px;">Uruchamia &Lambda;-&tau;-&rho; i Model J na WSZYSTKICH scenariuszach naraz, przy aktualnym window/threshold z formularza powy&#380;ej - do por&oacute;wnania, nie zast&#281;puje g&#322;&oacute;wnej analizy.</div>
     <button id="cmpBtn">Por&oacute;wnaj wszystkie scenariusze</button>
@@ -190,6 +196,35 @@ function setScenarioInfo(data) {
   const s = data.scenario;
   el.textContent = `Scenariusz "${s.label}" (${s.source}): ${s.generation}`;
   el.style.display = 'block';
+}
+
+function renderGeometric(data) {
+  const el = document.getElementById('geometric');
+  const g = data.geometric;
+  if (!g) { el.textContent = 'Brak danych.'; return; }
+
+  const lines = [];
+
+  if (g.quench_duration_s === null || g.quench_duration_s === undefined) {
+    lines.push('Czas zaniku: nie wykryto (sygnal nie opada ponizej progu po szczycie - normalne dla syntetycznych/wielu wgranych sygnalow).');
+  } else {
+    const ms = (g.quench_duration_s * 1000).toFixed(3);
+    const fastLabel = g.is_fast_quench === true ? 'SZYBKI zanik (< 15ms)' : (g.is_fast_quench === false ? 'wolny/kontrolowany zanik (>= 15ms)' : '-');
+    lines.push(`Czas zaniku (70%&rarr;10% szczytu): <b>${ms} ms</b> - ${fastLabel}.`);
+  }
+
+  if (g.funnel_ratio === null || g.funnel_ratio === undefined) {
+    const note = g.funnel_ratio_note ? ` (${g.funnel_ratio_note})` : ' (potrzebny drugi kanal, np. VLoop obok IPlasma tego samego strzalu)';
+    lines.push(`Portret fazowy (I,V): niedostepny${note}.`);
+  } else {
+    const r = g.funnel_ratio.toFixed(3);
+    const shape = g.funnel_ratio > 1.65 ? 'ROZSZERZA SIE (> 1.65, typowe dla realnych zaklocen)' : 'w przyblizeniu stabilny/kurczy sie (typowe dla normalnego konca wyladowania)';
+    lines.push(`Portret fazowy (I,V), stosunek promienia koniec/poczatek okna: <b>${r}</b> - ${shape}.`);
+  }
+
+  lines.push('<span style="color:#9aa4b2; font-size:12px;">Zwalidowane na 54 realnych strzalach TCABR (patrz data/real/README.md) - eksperymentalne na innych zrodlach danych.</span>');
+
+  el.innerHTML = lines.join('<br>');
 }
 
 function renderChart(data) {
@@ -411,6 +446,7 @@ document.getElementById('go').addEventListener('click', async () => {
     setHdf5Info(data);
     setScenarioInfo(data);
     document.getElementById('description').textContent = data.description;
+    renderGeometric(data);
     setStatus(`Gotowe: ${data.n_samples} probek, ${data.model_j_points.length} punktow skretu.`);
   } catch (e) {
     if (e.name === 'AbortError') {

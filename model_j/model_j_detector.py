@@ -264,6 +264,44 @@ def bridge_detector(
     return np.where(bridge_mask)[0]
 
 
+def _decay_window_bounds(signal, exclude_start=0, smooth_window=51, fraction_high=0.70, fraction_low=0.10):
+    """
+    Wewnetrzna funkcja pomocnicza: znajduje okno zaniku po szczycie -
+    dokladnie ta sama logika, ktorej uzywa quench_duration() (wygladzenie,
+    szczyt po exclude_start, przejscie przez fraction_high i fraction_low
+    ponizej szczytu). Wydzielona, zeby kazda inna funkcja w tym module,
+    ktora chce uzyc "tego samego okna zaniku" (np. phasespace_funnel_ratio()
+    nizej), uzywala JEDNEJ, wspolnej definicji zamiast osobno wymyslonej -
+    ten sam wzorzec konsolidacji co latro()/gradient_zscore() gdzie indziej
+    w repo.
+
+    Zwraca (idx_high, idx_low) jako indeksy ABSOLUTNE w oryginalnym
+    `signal` (nie wzgledem exclude_start ani szczytu), albo None jesli
+    zanik nie zostal wykryty (sygnal pusty, brak przejscia przez ktorykolwiek
+    prog, albo idx_low <= idx_high).
+    """
+    x = np.asarray(signal, dtype=float)
+    if x.size == 0:
+        return None
+    smoothed = pd.Series(x).rolling(smooth_window, center=True, min_periods=1).mean().to_numpy()
+    region = smoothed[exclude_start:]
+    if region.size == 0:
+        return None
+    peak_idx = int(np.argmax(region))
+    peak_val = region[peak_idx]
+    after = region[peak_idx:]
+    high_hits = np.where(after < fraction_high * peak_val)[0]
+    low_hits = np.where(after < fraction_low * peak_val)[0]
+    if high_hits.size == 0 or low_hits.size == 0:
+        return None
+    idx_high = high_hits[0]
+    idx_low = low_hits[0]
+    if idx_low <= idx_high:
+        return None
+    base = exclude_start + peak_idx
+    return base + idx_high, base + idx_low
+
+
 def quench_duration(
     signal,
     dt=1.0,
@@ -318,24 +356,16 @@ def quench_duration(
       spada ponizej `fraction_low` szczytu po jego wystapieniu (np. brak
       zaniku w ogole).
     """
-    x = np.asarray(signal, dtype=float)
-    if x.size == 0:
+    bounds = _decay_window_bounds(
+        signal,
+        exclude_start=exclude_start,
+        smooth_window=smooth_window,
+        fraction_high=fraction_high,
+        fraction_low=fraction_low,
+    )
+    if bounds is None:
         return None
-    smoothed = pd.Series(x).rolling(smooth_window, center=True, min_periods=1).mean().to_numpy()
-    region = smoothed[exclude_start:]
-    if region.size == 0:
-        return None
-    peak_idx = int(np.argmax(region))
-    peak_val = region[peak_idx]
-    after = region[peak_idx:]
-    high_hits = np.where(after < fraction_high * peak_val)[0]
-    low_hits = np.where(after < fraction_low * peak_val)[0]
-    if high_hits.size == 0 or low_hits.size == 0:
-        return None
-    idx_high = high_hits[0]
-    idx_low = low_hits[0]
-    if idx_low <= idx_high:
-        return None
+    idx_high, idx_low = bounds
     return float((idx_low - idx_high) * dt)
 
 
@@ -365,3 +395,109 @@ def is_fast_quench(signal, dt=1.0, duration_threshold=0.015, **kwargs):
     if duration is None:
         return None
     return duration < duration_threshold
+
+
+def phasespace_funnel_ratio(
+    primary_signal,
+    secondary_signal,
+    exclude_start=2000,
+    smooth_window=51,
+    fraction_high=0.70,
+    fraction_low=0.10,
+    edge_fraction=0.10,
+):
+    """
+    EKSPLORACYJNA cecha DWUKANALOWA - inna kategoria niz quench_duration()
+    (ten patrzy na ksztalt JEDNEGO kanalu; ta na portret fazowy DWOCH
+    kanalow naraz). Fizyczne uzasadnienie: VLoop (napiecie petli) jest w
+    przyblizeniu proporcjonalne do pochodnej IPlasma po czasie (V ~ L*dI/dt,
+    standardowa relacja indukcyjna) - para (IPlasma(t), VLoop(t)) w danym
+    oknie czasu jest wiec klasycznym portretem fazowym (polozenie vs.
+    predkosc), nie dowolnie wybranymi dwoma kanalami.
+
+    Uzywa DOKLADNIE tego samego okna zaniku co quench_duration()
+    (`_decay_window_bounds()` powyzej, na `primary_signal`) - nie nowego,
+    osobno wymyslonego okna. W tym oknie liczy trajektorie
+    (primary, secondary) wzgledem jej WLASNEGO centroidu (srodka masy
+    calego okna - "oko" wiru) i porownuje sredni promien (odleglosc od
+    centroidu) na KONCU okna (ostatnie `edge_fraction` probek) do sredniego
+    promienia na POCZATKU okna (pierwsze `edge_fraction` probek).
+
+    Wynik > 1: trajektoria (I,V) ROZSZERZA SIE w trakcie zaniku (lej
+    otwiera sie na zewnatrz). Wynik ~ 1: promien w przyblizeniu staly.
+    Wynik < 1: trajektoria SIE SCIAGA do "oka".
+
+    ============================================================
+    UCZCIWE OSTRZEZENIE - status INNY niz quench_duration/bridge_detector:
+    ta metryka zostala znaleziona przez PRZESZUKANIE kilku (~5-6)
+    kandydujacych konstrukcji geometrycznych (rura z czasem miedzy
+    wykryciami jako grubosc, krzywizna Gaussa powierzchni obrotowej,
+    liczba obrotow (I,V) w oknie stalym, liczba obrotow w oknie zaniku,
+    wreszcie ten stosunek promieni) NA TYM SAMYM zbiorze 35 realnych
+    strzalow TCABR, ktory jest tez uzyty do opisania wyniku nizej - to
+    EKSPLORACJA, nie pre-rejestrowany test. Zmierzone
+    (tests/test_real_tcabr_phasespace.py) p~3e-5 (test permutacyjny,
+    roznica median, zaklocajace n=23 vs normalne n=12) jest wiec HIPOTEZA
+    GENERUJACA, nie potwierdzeniem - w odroznieniu od bridge_detector,
+    ktory zostal FAKTYCZNIE zwalidowany na 30 NOWYCH, wczesniej
+    niewidzianych strzalach z parametrami zamrozonymi wczesniej. Ta
+    funkcja NIE zostala jeszcze tak przetestowana. Parametry (kanaly
+    IPlasma+VLoop, edge_fraction=0.10, uzycie okna z quench_duration) sa
+    tu ZAMROZONE OD TERAZ - kolejny krok to test na nowych, niewidzianych
+    strzalach, zanim to zostanie uznane za cos wiecej niz obiecujacy trop.
+
+    Osobna ciekawostka, nie naprawiony wynik: znany wyjatek quench_duration
+    (strzal TCABR 21918, nietypowo wolny zanik) ma tu funnel_ratio~0.64 -
+    NAJNIZSZY ze wszystkich 35 strzalow (trajektoria sie SCIAGA, nie
+    rozszerza) - inny, tez nietypowy sygnal niz reszta zaklocajacych, ale
+    NIE w tym samym kierunku co normalne strzaly (te maja waski zakres
+    ~1.05-1.64). To pokazuje, ze ta cecha niesie inna informacje niz
+    quench_duration, nie jest jej przeliczeniem - ale NIE naprawia
+    problemu 21918.
+    ============================================================
+
+    Parametry:
+      primary_signal   - sygnal uzywany do wyznaczenia okna zaniku (np.
+                          IPlasma) - ta sama logika co quench_duration().
+      secondary_signal - drugi kanal, TA SAMA dlugosc/probkowanie co
+                          primary_signal (np. VLoop) - druga wspolrzedna
+                          portretu fazowego.
+      exclude_start, smooth_window, fraction_high, fraction_low - jak w
+                          quench_duration(), uzywane do znalezienia tego
+                          samego okna zaniku na primary_signal.
+      edge_fraction     - jaka czesc dlugosci okna (na poczatku i koncu)
+                          usrednic przy liczeniu promienia (domyslnie
+                          0.10 = 10%).
+
+    Zwraca:
+      float (funnel_ratio) albo None, jesli okno zaniku nie zostalo
+      znalezione na primary_signal, secondary_signal jest za krotki zeby
+      pokryc to okno, okno ma mniej niz 10 probek, albo promien
+      poczatkowy wynosi 0.
+    """
+    primary = np.asarray(primary_signal, dtype=float)
+    secondary = np.asarray(secondary_signal, dtype=float)
+    bounds = _decay_window_bounds(
+        primary,
+        exclude_start=exclude_start,
+        smooth_window=smooth_window,
+        fraction_high=fraction_high,
+        fraction_low=fraction_low,
+    )
+    if bounds is None:
+        return None
+    idx_high, idx_low = bounds
+    if idx_low > secondary.size or (idx_low - idx_high) < 10:
+        return None
+
+    a = primary[idx_high:idx_low]
+    b = secondary[idx_high:idx_low]
+    center_a, center_b = np.mean(a), np.mean(b)
+    radius = np.hypot(a - center_a, b - center_b)
+
+    edge_n = max(1, int(len(radius) * edge_fraction))
+    radius_start = float(np.mean(radius[:edge_n]))
+    radius_end = float(np.mean(radius[-edge_n:]))
+    if radius_start <= 0:
+        return None
+    return radius_end / radius_start

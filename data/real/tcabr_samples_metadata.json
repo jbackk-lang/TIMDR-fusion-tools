@@ -909,6 +909,481 @@
       ],
       "source": "TCABR (Universidade de Sao Paulo), Zenodo DOI 10.5281/zenodo.21843354, CC-BY 4.0",
       "model_j_validation_note": "bridge_detector() (parametry niezmienione, ustalone przed ta walidacja - patrz data/real/README.md sekcja 'Walidacja na 30 nowych strzalach'): 2 wykryc, 2 (100%) w +-10ms od dt=0.1112s."
+    },
+    {
+      "shot_id": "17768",
+      "disruptive": true,
+      "disruption_time_s": 0.052700000000000004,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17768_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17768_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17768_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "18566",
+      "disruptive": true,
+      "disruption_time_s": 0.0624,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_18566_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_18566_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_18566_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "33666",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_33666_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_33666_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_33666_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "34128",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_34128_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_34128_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_34128_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "34895",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_34895_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_34895_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_34895_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "35758",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_35758_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_35758_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_35758_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "36873",
+      "disruptive": false,
+      "disruption_time_s": null,
+      "disruption_time_method": null,
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_36873_IPlasma.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_36873_VLoop.csv",
+          "n_samples": 50000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_36873_BbMirnovN01.csv",
+          "n_samples": 100000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "20182",
+      "disruptive": true,
+      "disruption_time_s": 0.0663,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_20182_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_20182_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_20182_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "20775",
+      "disruptive": true,
+      "disruption_time_s": 0.0688,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_20775_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_20775_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_20775_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "15502",
+      "disruptive": true,
+      "disruption_time_s": 0.0712,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_15502_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_15502_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_15502_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "16647",
+      "disruptive": true,
+      "disruption_time_s": 0.0727,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16647_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16647_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16647_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "17580",
+      "disruptive": true,
+      "disruption_time_s": 0.074,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17580_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17580_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17580_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "17763",
+      "disruptive": true,
+      "disruption_time_s": 0.07590000000000001,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17763_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17763_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17763_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "18042",
+      "disruptive": true,
+      "disruption_time_s": 0.0785,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_18042_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_18042_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_18042_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "17806",
+      "disruptive": true,
+      "disruption_time_s": 0.082,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17806_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17806_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17806_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "17277",
+      "disruptive": true,
+      "disruption_time_s": 0.0839,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_17277_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_17277_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_17277_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "16422",
+      "disruptive": true,
+      "disruption_time_s": 0.0866,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_16422_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_16422_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_16422_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "20788",
+      "disruptive": true,
+      "disruption_time_s": 0.0892,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_20788_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_20788_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_20788_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
+    },
+    {
+      "shot_id": "21168",
+      "disruptive": true,
+      "disruption_time_s": 0.10940000000000001,
+      "disruption_time_method": "MANIFEST.json (tcabr_tools.py, niezalezne od tego repo)",
+      "label_source": "MANIFEST.json (tcabr_tools.py)",
+      "channels": [
+        {
+          "channel": "IPlasma",
+          "file": "tcabr_shot_21168_IPlasma.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "VLoop",
+          "file": "tcabr_shot_21168_VLoop.csv",
+          "n_samples": 45000
+        },
+        {
+          "channel": "BbMirnovN01",
+          "file": "tcabr_shot_21168_BbMirnovN01.csv",
+          "n_samples": 45000
+        }
+      ],
+      "source": "real:tcabr (https://zenodo.org/records/21843354, DOI 10.5281/zenodo.21843354, CC-BY 4.0)"
     }
   ]
 }

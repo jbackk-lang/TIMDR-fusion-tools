@@ -10,26 +10,37 @@ Zrodlo: "Experimental Plasma Discharge Dataset from the TCABR Tokamak"
 (Universidade de Sao Paulo), CC-BY 4.0, 2189 realnych wyladowan (1754
 non-disruptive + 435 disruptive). https://zenodo.org/records/21843354
 
-**35 realnych strzalow x 3 kanaly = 105 sygnalow** sa tu wgrane i
+**54 realne strzaly x 3 kanaly = 162 sygnaly** sa tu wgrane i
 zarejestrowane jako scenariusze w dashboardzie (`tcabr_<shot>_<kanal>`,
-widoczne w `GET /scenarios` obok syntetycznych): 23 zaklocajace, 12
-normalnych. Pierwsze 5 (3 zaklocajace + 2 normalne) zostaly wyciagniete
-jako pierwsze i uzyte do zbudowania `bridge_detector()` (patrz nizej);
-kolejne 30 (20 zaklocajacych + 10 normalnych) zostalo wyciagniete PO
-ustaleniu parametrow detektora, wylacznie do niezaleznej walidacji - patrz
-sekcja "Walidacja na 30 nowych strzalach" nizej.
+widoczne w `GET /scenarios` obok syntetycznych): 37 zaklocajacych, 17
+normalnych, w czterech partiach. Pierwsze 5 (3 zaklocajace + 2 normalne)
+zostaly wyciagniete jako pierwsze i uzyte do zbudowania
+`bridge_detector()` (patrz nizej); kolejne 30 (20 zaklocajacych + 10
+normalnych) zostalo wyciagniete PO ustaleniu parametrow detektora,
+wylacznie do niezaleznej walidacji mostu - patrz sekcja "Walidacja na 30
+nowych strzalach" nizej; ostatnie 19 (14 zaklocajacych + 5 normalnych,
+partia 4) zostaly wyciagniete PO zamrozeniu `quench_duration()`/
+`is_fast_quench()`/`phasespace_funnel_ratio()`, wylacznie do ich
+niezaleznej walidacji held-out - patrz sekcja "Geometria ksztaltu: czas
+zaniku" i "Portret fazowy (I,V): funnel_ratio" nizej.
 
 | shot_id | typ | czas zaklocenia | partia |
 |---|---|---|---|
-| 15569 | disruptive (early) | 0.0566 s | 1 (budowa) |
-| 20316 | disruptive (typical) | 0.0746 s | 1 (budowa) |
-| 22201 | disruptive (late) | 0.1083 s | 1 (budowa) |
-| 33664 | normal | - | 1 (budowa) |
-| 36973 | normal | - | 1 (budowa) |
-| 20 kolejnych zaklocajacych | disruptive | 0.050-0.112 s | 2-3 (walidacja) |
-| 10 kolejnych normalnych | normal | - | 2-3 (walidacja) |
+| 15569 | disruptive (early) | 0.0566 s | 1 (budowa mostu) |
+| 20316 | disruptive (typical) | 0.0746 s | 1 (budowa mostu) |
+| 22201 | disruptive (late) | 0.1083 s | 1 (budowa mostu) |
+| 33664 | normal | - | 1 (budowa mostu) |
+| 36973 | normal | - | 1 (budowa mostu) |
+| 20 kolejnych zaklocajacych | disruptive | 0.050-0.112 s | 2 (walidacja mostu) |
+| 10 kolejnych normalnych | normal | - | 2 (walidacja mostu) |
+| 14 kolejnych zaklocajacych | disruptive | 0.0527-0.1094 s | 4 (walidacja geometrii, held-out) |
+| 5 kolejnych normalnych | normal | - | 4 (walidacja geometrii, held-out) |
 
-Pelna lista 35 strzalow: `data/real/tcabr_samples_metadata.json`.
+Pelna lista 54 strzalow: `data/real/tcabr_samples_metadata.json`. Jeden
+plik z partii 4 (`15_disruptive_shot_17719.npz`, strzal 17719) byl
+uszkodzony/obciety w transferze (blad `BadZipFile`, brak poprawnego
+rekordu konca archiwum ZIP) i NIE zostal odzyskany - pominiety (partia 4
+ma wiec 19, nie 20 strzalow).
 
 Kanaly: `IPlasma` (prad plazmy, kA), `VLoop` (napiecie petli, V),
 `BbMirnovN01` (jedna cewka Mirnova). **Kazdy kanal ma WLASNA, osobna os
@@ -53,8 +64,13 @@ ukladanie kolumn) niczego nie zepsula. CSV-y sa zapisane przez
 `repr(float(...))` (najkrotszy tekst, ktory odtwarza dokladnie ta sama
 wartosc float64 - nie stala liczba miejsc po przecinku), wiec sprawdzane
 jest DOKLADNE (bit-w-bit, `np.array_equal`, nie przyblizone) rownanie z
-surowym `.npz` dla wszystkich 105 kombinacji (strzal, kanal) - zabezpieczone
-testem regresyjnym `tests/test_real_tcabr.py::test_csv_matches_raw_npz_source`.
+surowym `.npz` dla wszystkich 162 kombinacji (strzal, kanal) w calym
+zbiorze - zabezpieczone testami regresyjnymi
+`tests/test_real_tcabr.py::test_csv_matches_raw_npz_source` (oryginalne
+35 strzalow x 3 kanaly) i
+`tests/test_real_tcabr_batch3_geometric.py::test_new_batch_csv_matches_raw_npz_source_bit_exact`
+(19 najnowszych strzalow x 3 kanaly - gdzie ten wlasnie test zlapal i
+pozwolil naprawic realna niezgodnosc, patrz jego docstring).
 
 Po drodze znaleziono i naprawiono realny, ogolny blad (nie tylko w danych
 TCABR): domyslny szybki parser liczb zmiennoprzecinkowych `pandas.read_csv`
@@ -318,7 +334,7 @@ wybuchy oscylacji tuz po szczycie daja falszywe, zbyt wczesne przejscia
 przez progi i myla pomiar; to nie kosmetyka, tylko warunek, zeby metryka
 mierzyla ksztalt obwiedni, a nie szum.
 
-**Wynik na wszystkich 35 realnych strzalach** (`IPlasma`,
+**Wynik na oryginalnych 35 realnych strzalach** (`IPlasma`,
 `exclude_start=2000`, zweryfikowane w
 `tests/test_real_tcabr_quench_duration.py`):
 
@@ -340,6 +356,18 @@ wyznaczony WPROST z tej przerwy (w polowie miedzy 3.084ms i 19.056ms, nie
 dopasowany do zadnego pojedynczego przypadku) - klasyfikuje 22/23
 zaklocajacych jako `True` i 12/12 normalnych jako `False`.
 
+**Walidacja held-out na 19 nowych, wczesniej niewidzianych strzalach
+(partia 4)** - dokladnie ten sam wzorzec dyscypliny co walidacja mostu na
+30 strzalach: `duration_threshold=0.015` byl juz zamrozony PRZED
+zobaczeniem tych 19 strzalow. Wynik (zweryfikowany w
+`tests/test_real_tcabr_batch3_geometric.py`): **14/14 nowych
+zaklocajacych poprawnie `True`, 5/5 nowych normalnych poprawnie
+`False` - 19/19, bez ani jednej pomylki** (w tej konkretnej partii nie
+trafil sie przypadek podobny do 21918). Margines miedzy klasami trzyma
+sie na pelnym, polaczonym zbiorze 54 strzalow: najwolniejszy szybki
+zanik w calym zbiorze to teraz 3.448ms (strzal 20788, partia 4), wciaz
+>5x ponizej najszybszego normalnego rampdownu (19.056ms).
+
 **Uczciwy wyjatek, nie przemilczany**: strzal 21918 to prawdziwe,
 niezaleznie potwierdzone zaklocenie, ale jego zanik trwa ~27.6ms - w
 zakresie normalnych strzalow, nie zaklocajacych. `is_fast_quench()` go
@@ -360,6 +388,72 @@ strzalem - ale robi to lepiej, kosztem jednego udokumentowanego,
 niewyjasnionego wyjatku (21918). Nie zastepuje mostu (inne pytanie:
 lokalizacja W CZASIE vs klasyfikacja CZY-TO-ZAKLOCENIE) - to
 uzupelniajaca, nie konkurencyjna metoda.
+
+### Portret fazowy (I,V): phasespace_funnel_ratio
+
+Trzecia, jeszcze inna cecha - zamiast jednego kanalu (jak `quench_duration`)
+patrzy na DWA naraz. Fizyczne uzasadnienie: `VLoop` jest w przyblizeniu
+proporcjonalne do pochodnej `IPlasma` po czasie (V ~ L·dI/dt, relacja
+indukcyjna) - para (IPlasma(t), VLoop(t)) w oknie zaniku jest wiec
+klasycznym portretem fazowym (polozenie vs. predkosc), nie dowolnie
+wybranymi dwoma kanalami.
+
+**`phasespace_funnel_ratio()`** (`model_j/model_j_detector.py`) uzywa
+DOKLADNIE tego samego okna zaniku co `quench_duration()` (wspolna funkcja
+`_decay_window_bounds()`), liczy trajektorie (I,V) wzgledem jej wlasnego
+centroidu i zwraca stosunek promienia (odleglosc od centroidu) na koncu
+okna do promienia na poczatku. Wynik > 1 = trajektoria sie rozszerza,
+< 1 = kurczy sie.
+
+**Pochodzenie - uczciwie, jako eksploracja, nie od razu jako pewnik**: ta
+cecha zostala znaleziona przez przeszukanie kilku konkurencyjnych
+konstrukcji geometrycznych (rura z czasem-do-nastepnego-wykrycia jako
+grubosc, krzywizna Gaussa powierzchni obrotowej "leja", liczba obrotow
+(I,V) w oknie o stalej dlugosci, liczba obrotow w oknie zaniku, wreszcie
+ten stosunek promieni) na oryginalnych 35 strzalach - czyli na TYCH
+SAMYCH danych, ktore posluzyly do jej opisania. To wprost nazwane w
+docstringu funkcji jako "hipoteza generujaca, nie potwierdzenie".
+
+**Wynik na oryginalnych 35 strzalach**: zaklocajace (n=23) mialy mediane
+funnel_ratio 1.94, normalne (n=12) mediane 1.17, test permutacyjny na
+roznicy median p≈3e-5 - ale to byl wynik EKSPLORACYJNY, jeszcze bez
+niezaleznej probki.
+
+**Walidacja held-out na 19 nowych, wczesniej niewidzianych strzalach
+(partia 4)** - z parametrami (kanaly IPlasma+VLoop, prog 1.65,
+`edge_fraction=0.10`) zamrozonymi PRZED zobaczeniem tych danych, dokladnie
+jak most i quench_duration wczesniej. Wynik (zweryfikowany w
+`tests/test_real_tcabr_batch3_geometric.py`):
+
+| grupa | wynik na held-out (partia 4) |
+|---|---|
+| 14 nowych zaklocajacych, prog >1.65 | **12/14 (86%)** powyzej progu |
+| 5 nowych normalnych, prog >1.65 | **0/5 (0%)** falszywych trafien |
+
+To NIE jest doskonaly klasyfikator (2 nowe zaklocajace strzaly, 18566 i
+20182, wypadaja ponizej progu - podobny wzorzec do wyjatku 21918 w
+quench_duration), ale **100% swoistosc + 86% czulosc na genuinely
+held-out danych** to realne potwierdzenie, ze wynik na oryginalnych 35
+nie byl przypadkiem dopasowanym do tamtego konkretnego zbioru. Na pelnym,
+polaczonym zbiorze 54 strzalow: zaklocajace (n=37) mediana 2.05, zakres
+[0.64, 3.18]; normalne (n=17) mediana 1.18, zakres [1.05, 1.64] - GORNA
+GRANICA normalnych (1.64) nie przesunela sie w ogole mimo 5 nowych
+normalnych strzalow.
+
+**Ciekawostka**: strzal 21918 (znany wyjatek `quench_duration`, wolny
+zanik) ma tu funnel_ratio≈0.64 - NAJNIZSZY ze wszystkich 54 strzalow
+(trajektoria (I,V) sie SCIAGA, jedyny taki przypadek). To inna, ale tez
+nietypowa cecha sygnalu niz reszta zaklocajacych - nie naprawia problemu
+21918, ale pokazuje, ze `phasespace_funnel_ratio` niesie realnie inna
+informacje niz `quench_duration`, nie jest jej przeliczeniem.
+
+**Status**: w odroznieniu od `bridge_detector`/`quench_duration` (dluzej
+zwalidowane, wieksza podstawa dowodowa), `phasespace_funnel_ratio` ma
+dopiero JEDNA rundy walidacji held-out (19 strzalow) - obiecujacy,
+potwierdzony wynik, ale z mniejsza podstawa dowodowa niz pozostale dwie
+metody. Widoczny w dashboardzie (panel "Detektor geometryczny") dla
+scenariuszy TCABR `<shot>_IPlasma`, ktore maja siostrzany scenariusz
+`<shot>_VLoop`.
 
 ## Jak dodac wiecej realnych strzalow
 
