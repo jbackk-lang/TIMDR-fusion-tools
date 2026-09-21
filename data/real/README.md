@@ -302,6 +302,65 @@ spadku pradu, nie tylko obecnosc klastra). Do realnej diagnostyki
 produkcyjnej (wykrycie NIEZNANEGO zaklocenia w nowym strzale) repozytorium
 ma juz dzialajace, prostsze narzedzie - kryterium 2 samo w sobie.
 
+### Geometria ksztaltu: czas zaniku
+
+Wszystko powyzej (Model J, most) patrzy na STATYSTYCZNE odchylenie
+punktowe/oknowe sygnalu - "czy ta wartosc/gradient jest anomalna wzgledem
+lokalnego tla". Osobne pytanie: czy sam KSZTALT przebiegu po szczycie -
+niezaleznie od progow z-score - uklada sie w rozpoznawalny wzorzec, ktory
+odroznia zaklocenie od normalnego konca wyladowania?
+
+**`quench_duration()`** (`model_j/model_j_detector.py`) mierzy czas, w
+jakim WYGLADZONY sygnal (srednia ruchoma, `smooth_window=51` probek,
+~200us przy 250kHz) opada od 70% do 10% swojej wartosci szczytowej (po
+`exclude_start`). Wygladzanie jest KONIECZNE - bez niego pojedyncze
+wybuchy oscylacji tuz po szczycie daja falszywe, zbyt wczesne przejscia
+przez progi i myla pomiar; to nie kosmetyka, tylko warunek, zeby metryka
+mierzyla ksztalt obwiedni, a nie szum.
+
+**Wynik na wszystkich 35 realnych strzalach** (`IPlasma`,
+`exclude_start=2000`, zweryfikowane w
+`tests/test_real_tcabr_quench_duration.py`):
+
+| grupa | zakres czasu zaniku |
+|---|---|
+| 22 z 23 zaklocajacych ("szybkie") | 0.908 - 3.084 ms |
+| 21918 (zaklocajacy, WYJATEK) | 27.568 ms |
+| wszystkie 12 normalnych | 19.056 - 38.404 ms |
+
+22 z 23 realnych zaklocen maja gwaltowny, submilisekundowo-do-3ms zanik
+prądu. Wszystkie 12 normalnych strzalow konczy sie wolnym, kontrolowanym
+rampdownem 19-38ms. Miedzy najwolniejszym "szybkim" zaklóceniem (3.084ms)
+a najszybszym normalnym rampdownem (19.056ms) jest margines **>6x**
+(19.056/3.084 ≈ 6.18) - wiekszy niz jakikolwiek wynik znaleziony
+wczesniej w tym repo dla realnych danych.
+
+**`is_fast_quench(signal, duration_threshold=0.015, ...)`** - prog 15ms
+wyznaczony WPROST z tej przerwy (w polowie miedzy 3.084ms i 19.056ms, nie
+dopasowany do zadnego pojedynczego przypadku) - klasyfikuje 22/23
+zaklocajacych jako `True` i 12/12 normalnych jako `False`.
+
+**Uczciwy wyjatek, nie przemilczany**: strzal 21918 to prawdziwe,
+niezaleznie potwierdzone zaklocenie, ale jego zanik trwa ~27.6ms - w
+zakresie normalnych strzalow, nie zaklocajacych. `is_fast_quench()` go
+BLEDNIE klasyfikuje jako `False`. Nie znaleziono jeszcze wyjasnienia (czy
+to inny fizyczny mechanizm zaklocenia, czy artefakt tego konkretnego
+wyladowania) i nie probowano tego naprawic dopasowaniem progu pod ten
+jeden przypadek - to byloby dokladnie dostrajanie, ktorego ten projekt
+unika. Test `test_slow_disruptive_outlier_is_honestly_misclassified`
+pilnuje, zeby ten blad pozostal widoczny, gdyby ktos w przyszlosci
+przypadkiem "naprawil" go przez luzniejszy prog.
+
+**Co z tego wynika praktycznie**: to inna, silniejsza cecha niz most
+(ksztalt obwiedni po szczycie zamiast lokalnej statystyki punktowej) - z
+duzo wiekszym marginesem separacji (>6x vs czesciowa/zerowa specyficznosc
+mostu) i prostsza konstrukcja (jeden prog, jedna cecha). Wciaz mierzy to
+samo, co most NIE mierzyl: swoistosc miedzy zaklocajacym a normalnym
+strzalem - ale robi to lepiej, kosztem jednego udokumentowanego,
+niewyjasnionego wyjatku (21918). Nie zastepuje mostu (inne pytanie:
+lokalizacja W CZASIE vs klasyfikacja CZY-TO-ZAKLOCENIE) - to
+uzupelniajaca, nie konkurencyjna metoda.
+
 ## Jak dodac wiecej realnych strzalow
 
 `demo/scenarios.py::_load_real_tcabr_scenarios()` wczytuje

@@ -268,6 +268,22 @@ skali: 2/3) — ale to nadal nie jest doskonały klasyfikator: na jednym z 2
 normalnych strzałów most tworzy pojedynczy, porównywalny wielkością
 fałszywy klaster. Pełny opis w [`data/real/README.md`](data/real/README.md).
 
+`quench_duration(signal, dt=1.0, fraction_high=0.70, fraction_low=0.10, smooth_window=51, exclude_start=0)` —
+zupełnie inna, GEOMETRYCZNA cecha: czas (w jednostkach `dt`), w jakim
+WYGŁADZONY sygnał (średnia ruchoma) opada od 70% do 10% swojej wartości
+szczytowej po `exclude_start`. Wygładzanie jest konieczne — bez niego
+pojedyncze wybuchy oscylacji tuż po szczycie dają fałszywe, zbyt wczesne
+przejścia przez progi. Zwraca `None`, gdy któryś próg nie zostanie
+przekroczony. `is_fast_quench(signal, dt=1.0, duration_threshold=0.015, **kwargs)`
+progowuje ten czas (prog 15ms wyznaczony wprost z przerwy między
+zaobserwowanymi zakresami, nie dopasowany do żadnego przypadku). Na
+realnych danych TCABR: 22 z 23 zakłócających strzałów mają zanik
+0,9–3,1ms, wszystkie 12 normalnych — wolny rampdown 19–38ms (margines
+>6x); jeden zakłócający strzał (21918) ma nietypowo wolny zanik (~27,6ms)
+i jest uczciwie, udokumentowanie błędnie klasyfikowany. Pełny opis w
+[`data/real/README.md`](data/real/README.md), sekcja "Geometria kształtu:
+czas zaniku".
+
 ---
 
 ## Demo
@@ -328,10 +344,13 @@ obecność `latro_windowed`/`spectrum`/`model_j_zscore_hist`/`description`
 w odpowiedzi), scenariusze demo (`tests/test_scenarios.py`), oraz — jeśli
 lokalnie obecne realne dane TCABR — `tests/test_real_tcabr.py` (globalny,
 lokalny/skalibrowany i mostowy tryb Modelu J na realnych sygnałach, plus
-zgodność CSV-ów z surowymi `.npz`) oraz `tests/test_real_tcabr_batch2.py`
-(niezależna walidacja mostu na 30 wcześniej niewidzianych strzałach —
-patrz `data/real/raw/` i `data/real/README.md` niżej). 327/327 testów
-przechodzi z danymi TCABR obecnymi lokalnie, 72/72 bez nich — część
+zgodność CSV-ów z surowymi `.npz`), `tests/test_real_tcabr_batch2.py`
+(niezależna walidacja mostu na 30 wcześniej niewidzianych strzałach) oraz
+`tests/test_real_tcabr_quench_duration.py` (walidacja `quench_duration()`/
+`is_fast_quench()` na wszystkich 35 realnych strzałach — patrz
+`data/real/raw/` i `data/real/README.md` niżej). 339/339 testów
+przechodzi z danymi TCABR obecnymi lokalnie, 80/80 bez nich (49
+pominiętych) — część
 testów jest sparametryzowana po liście scenariuszy demo, która rośnie z 5
 (same syntetyczne) do 40 (+ 35 realnych TCABR), stąd różnica większa niż
 tylko same testy w `test_real_tcabr*.py`.
@@ -362,8 +381,17 @@ wykrycia — 96,8%, 2/20 — brak wykryć (zdiagnozowane, ten sam mechanizm co
 przy strzale 20316). Ważne zastrzeżenie: to precyzja LOKALIZACJI w obrębie
 już znanego zakłócenia, nie swoistość klasyfikatora — na 10 nowych
 normalnych strzałach most nadal generuje wykrycia, część porównywalnych
-wielkością z prawdziwymi zakłóceniami. Pełny, szczegółowy opis wszystkich
-trybów i wyniku walidacji w [`data/real/README.md`](data/real/README.md).
+wielkością z prawdziwymi zakłóceniami.
+
+**Geometria kształtu (`quench_duration()`/`is_fast_quench()`)** — inna,
+silniejsza cecha niż powyższe: czas zaniku WYGŁADZONEGO sygnału po
+szczycie. Na wszystkich 35 strzałach: 22 z 23 zakłócających mają zanik
+0,9–3,1ms, wszystkie 12 normalnych — wolny rampdown 19–38ms (margines
+>6x) — pierwszy wynik w tym repo, który odróżnia zakłócający strzał od
+normalnego, nie tylko lokalizuje zakłócenie w czasie. Jeden zakłócający
+strzał (21918, zanik ~27,6ms) jest uczciwie, udokumentowanie błędnie
+klasyfikowany jako "wolny". Pełny, szczegółowy opis wszystkich trybów i
+wyniku walidacji w [`data/real/README.md`](data/real/README.md).
 
 ---
 

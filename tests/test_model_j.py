@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 import warnings
 
-from model_j.model_j_detector import bridge_detector, gradient_zscore, model_j, sustained_drop_mask
+from model_j.model_j_detector import (
+    bridge_detector,
+    gradient_zscore,
+    is_fast_quench,
+    model_j,
+    quench_duration,
+    sustained_drop_mask,
+)
 
 
 def test_model_j_empty_signal_returns_empty():
@@ -178,6 +185,54 @@ def test_bridge_detector_flags_a_genuine_sustained_drop():
     result = bridge_detector(x, long_window=300, short_window=201, exclude_start=0)
     assert len(result) > 0
     assert np.any((result > 2900) & (result < 3200))
+
+
+def test_quench_duration_empty_signal_returns_none():
+    assert quench_duration(np.array([])) is None
+
+
+def test_quench_duration_no_decay_returns_none():
+    """A signal that never drops below fraction_low after its peak has no
+    measurable quench duration."""
+    x = np.linspace(0, 100, 2000)  # monotonically rising, never decays
+    assert quench_duration(x) is None
+
+
+def test_quench_duration_measures_a_fast_decay():
+    x = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 5), np.full(2000, 0.0)])
+    dur = quench_duration(x, dt=1.0, smooth_window=1)
+    assert dur is not None
+    assert 0 < dur < 20  # sharp, few-sample collapse
+
+
+def test_quench_duration_measures_a_slow_decay():
+    x = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 500), np.full(2000, 0.0)])
+    dur = quench_duration(x, dt=1.0, smooth_window=1)
+    assert dur is not None
+    assert dur > 100  # gradual, many-sample decline
+
+
+def test_quench_duration_distinguishes_fast_from_slow_decay():
+    fast = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 5), np.full(2000, 0.0)])
+    slow = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 500), np.full(2000, 0.0)])
+    dur_fast = quench_duration(fast, dt=1.0, smooth_window=1)
+    dur_slow = quench_duration(slow, dt=1.0, smooth_window=1)
+    assert dur_fast < dur_slow
+
+
+def test_is_fast_quench_true_for_sharp_collapse():
+    x = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 5), np.full(2000, 0.0)])
+    assert is_fast_quench(x, dt=1.0, duration_threshold=50, smooth_window=1) is True
+
+
+def test_is_fast_quench_false_for_gradual_decline():
+    x = np.concatenate([np.full(2000, 100.0), np.linspace(100.0, 0.0, 500), np.full(2000, 0.0)])
+    assert is_fast_quench(x, dt=1.0, duration_threshold=50, smooth_window=1) is False
+
+
+def test_is_fast_quench_returns_none_when_no_decay():
+    x = np.full(500, 42.0)
+    assert is_fast_quench(x) is None
 
 
 def test_model_j_is_exactly_the_thresholded_gradient_zscore():

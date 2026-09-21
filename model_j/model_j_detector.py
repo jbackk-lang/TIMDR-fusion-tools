@@ -262,3 +262,106 @@ def bridge_detector(
     if exclude_start > 0:
         bridge_mask[:exclude_start] = False
     return np.where(bridge_mask)[0]
+
+
+def quench_duration(
+    signal,
+    dt=1.0,
+    fraction_high=0.70,
+    fraction_low=0.10,
+    smooth_window=51,
+    exclude_start=0,
+):
+    """
+    GEOMETRYCZNA cecha ksztaltu sygnalu - zupelnie inna kategoria niz
+    gradient_zscore()/bridge_detector() powyzej (te patrza na LOKALNE,
+    punktowe/oknowe odchylenia; ta patrzy na KSZTALT calego zaniku po
+    szczycie). Mierzy czas, w jakim sygnal spada z `fraction_high` do
+    `fraction_low` swojej wartosci szczytowej PO szczycie - "czas zaniku".
+
+    Odkryte przy probie geometrycznego odroznienia prawdziwych zaklocen
+    TCABR od falszywych klastrow bridge_detector() na strzalach
+    normalnych (patrz data/real/README.md, sekcja "Geometria ksztaltu:
+    czas zaniku"): normalne strzaly TCABR koncza sie LAGODNYM,
+    KONTROLOWANYM opadaniem pradu (planowy koniec wyladowania) trwajacym
+    dziesiatki ms, podczas gdy prawdziwe zaklocenia to gwaltowny zanik w
+    1-3ms - ksztalt (czas trwania), nie tylko amplituda czy gradient
+    punktowy, silnie odroznia jedne od drugich.
+
+    Wygladzanie (`smooth_window`, domyslnie 51 probek) PRZED pomiarem
+    progow jest konieczne - bez niego chwilowe oscylacje/szum w trakcie
+    lagodnego zaniku (realne wahania pradu, nie artefakt) potrafia
+    falszywie "przebic" prog `fraction_low` na chwile, zanizajac
+    zmierzony czas zaniku o rzad wielkosci (zweryfikowane empirycznie -
+    bez wygladzania niektore normalne strzaly TCABR myliy sie z bardzo
+    szybkim zanikiem, mimo ze ich obwiednia jest lagodna).
+
+    Parametry:
+      signal        - sekwencja liczb.
+      dt            - odstep czasu miedzy probkami (w dowolnych
+                       jednostkach, np. sekundach) - wynik jest w tych
+                       samych jednostkach. Domyslnie 1.0 (wynik w
+                       probkach).
+      fraction_high - gorny prog wzgledem szczytu, od ktorego liczony
+                       jest czas (domyslnie 0.70).
+      fraction_low  - dolny prog wzgledem szczytu, do ktorego liczony
+                       jest czas (domyslnie 0.10).
+      smooth_window - rozmiar okna wygladzania (probki) przed pomiarem
+                       progow (domyslnie 51).
+      exclude_start - liczba poczatkowych probek do pominiecia przy
+                       szukaniu szczytu (domyslnie 0) - przydatne do
+                       wykluczenia artefaktu digitizera na starcie
+                       zapisu, patrz gradient_zscore().
+
+    Zwraca:
+      float (czas zaniku w jednostkach `dt`) albo None, jesli sygnal nie
+      spada ponizej `fraction_low` szczytu po jego wystapieniu (np. brak
+      zaniku w ogole).
+    """
+    x = np.asarray(signal, dtype=float)
+    if x.size == 0:
+        return None
+    smoothed = pd.Series(x).rolling(smooth_window, center=True, min_periods=1).mean().to_numpy()
+    region = smoothed[exclude_start:]
+    if region.size == 0:
+        return None
+    peak_idx = int(np.argmax(region))
+    peak_val = region[peak_idx]
+    after = region[peak_idx:]
+    high_hits = np.where(after < fraction_high * peak_val)[0]
+    low_hits = np.where(after < fraction_low * peak_val)[0]
+    if high_hits.size == 0 or low_hits.size == 0:
+        return None
+    idx_high = high_hits[0]
+    idx_low = low_hits[0]
+    if idx_low <= idx_high:
+        return None
+    return float((idx_low - idx_high) * dt)
+
+
+def is_fast_quench(signal, dt=1.0, duration_threshold=0.015, **kwargs):
+    """
+    Prosty klasyfikator oparty na quench_duration(): True, jesli czas
+    zaniku (patrz quench_duration()) jest krotszy niz `duration_threshold`
+    (domyslnie 0.015 - 15ms, dobrane z duzym marginesem miedzy
+    zmierzonymi zakresami na realnych danych TCABR: 22/23 zaklocajacych
+    strzalow ma czas zaniku 0.9-3.1ms, wszystkie 12 normalnych strzalow
+    19.1-38.4ms - prog 15ms lezy w duzym, ~6-krotnym marginesie miedzy
+    tymi zakresami, patrz data/real/README.md).
+
+    UCZCIWE OGRANICZENIE: jeden z 23 zbadanych realnych zaklocajacych
+    strzalow (TCABR 21918) ma NIETYPOWO WOLNY zanik (~27.6ms) - lagodne,
+    stopniowe zaklocenie zamiast gwaltownego - i zostanie tu BLEDNIE
+    sklasyfikowany jako "nie szybki zanik". To nie zostalo naprawione
+    (nie ma tu czego kalibrowac bez ryzyka dopasowania do jednego
+    przypadku) - zaraportowane wprost jako znana, zrozumiana granica tej
+    metody: odroznia SZYBKIE zaklocenia od normalnego, kontrolowanego
+    konca wyladowania, nie WSZYSTKIE zaklocenia w ogole.
+
+    Zwraca None (nie True/False), jesli quench_duration() zwrocilo None
+    (brak wykrytego zaniku w ogole).
+    """
+    duration = quench_duration(signal, dt=dt, **kwargs)
+    if duration is None:
+        return None
+    return duration < duration_threshold
