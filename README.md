@@ -41,15 +41,22 @@ niżej) dla dowolnego scenariusza TCABR.
 
 `is_fast_quench()`/`quench_duration()` uruchomione bez zmian kodu na dwóch
 rozłącznych próbkach po 579 strzałów MAST (`magnetics/ip`, parametry
-okienkowe przeliczone na czas fizyczny, kryteria zamrożone przed
-uruchomieniem): rozkład czasu zaniku jest dwumodalny (ok. 2–3 ms i ok.
-50 ms, przerwa 4–15 ms zawiera ok. 4,5% strzałów) i powtarzalny w obu
-próbkach; próg 15 ms z TCABR działa tak samo jak 7,7 ms. **To opis struktury
-rozkładu, nie trafność klasyfikacji** — dla MAST nie ma dostępnych etykiet
-dysrupcji (`level2/defuse`: AccessDenied), więc nie wiadomo, czy szybki tryb
-(ok. 65% strzałów) to zakłócenia. `bridge_detector()` nie wykazał na MAST
-związku z `is_fast_quench()`. Pre-rejestracje, skrypty i wyniki:
-[`data/mast_cross_device/`](data/mast_cross_device/).
+okienkowe przeliczone na czas fizyczny). Pierwsza pre-rejestracja (próbka 1)
+**nie przeszła** kryterium K1 (11,1% strzałów w oknie 7,5–30 ms przy progu 10%):
+okno obejmowało dolną część wolnego trybu. Kryteria testu potwierdzającego
+wyprowadzono post hoc z próbki 1 i sprawdzono na rozłącznej próbce 2 — tam
+wszystkie są spełnione. Rozkład czasu zaniku jest dwumodalny (mediany
+skupień ok. 2,6 ms i ok. 61 ms; parametry mieszaniny Gaussa zależą od
+inicjalizacji dopasowania), przerwa 4–15 ms zawiera ok. 4,5% strzałów w obu
+próbkach, a próg 15 ms z TCABR daje prawie ten sam podział co 7,7 ms
+(różnica 2,4 pp). **To opis struktury rozkładu, nie trafność klasyfikacji** —
+dla MAST nie ma dostępnych etykiet dysrupcji (`level2/defuse`: AccessDenied),
+więc nie wiadomo, czy szybki tryb (ok. 65% strzałów) to zakłócenia.
+`bridge_detector()` nie wykazał na MAST związku z `is_fast_quench()`.
+Kryteria zamrożono hashami przed uruchomieniem, ale pre-rejestracje trafiły
+do gita razem z wynikami, więc kolejność potwierdza tylko zapisany znacznik
+czasu. Pre-rejestracje, skrypty, wyniki, odtworzenie próbki 1 z surowych
+danych i audyt twierdzeń: [`data/mast_cross_device/`](data/mast_cross_device/).
 
 ---
 

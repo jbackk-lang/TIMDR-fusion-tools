@@ -1,10 +1,14 @@
-"""Audyt twierdzeń w README (warstwa AI-Core przeniesiona z TIMeDR-MUZ).
+"""TIMDR-AI-Core: audyt twierdzeń w README (v0.2).
 
 Każde twierdzenie z README ma kartę: dokładny cytat, pliki źródłowe i funkcję, która przelicza wartość z surowych
 wyników. Silnik sprawdza: dowód (R1), pokrycie liczb (R3), świeżość hashy (R4), kompletność (R5), kotwicę czasu w gicie
 (R6) i sformułowania (R7). Tylko biblioteka standardowa; karty mogą używać NumPy/pandas.
+Opis reguł i format karty: CLAIM_AUDIT.md w TIMDR-AI-Core. Repozytoria wendorują ten plik (tools/claim_audit.py).
 
-Użycie: python tools/claim_audit.py data/mast_cross_device/claims_mast.py
+v0.2 (po pilotażu MAST w TIMDR-fusion-tools): R5 z osobnym wzorcem wymaganym dla każdego wyzwalacza;
+R6 z opcjonalnym wzorcem ujawnienia (ograniczenie opisane w README = UJAWNIONE zamiast NIEROZSTRZYGNIĘTE).
+
+Użycie: python claim_audit.py sciezka/do/claims_xxx.py
 """
 from __future__ import annotations
 
@@ -18,8 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
+__version__ = "0.2"
+
 POTWIERDZONE, SPRZECZNE, NIEROZSTRZYGNIETE, UDOKUMENTOWANE = ("POTWIERDZONE", "SPRZECZNE", "NIEROZSTRZYGNIĘTE",
                                                                "UDOKUMENTOWANE")
+UJAWNIONE = "UJAWNIONE"
 
 
 @dataclass
@@ -115,37 +122,45 @@ def run(spec) -> tuple[str, dict]:
         findings.append(("R3 pokrycie", "NIEPOKRYTE", f"liczby bez karty: {', '.join(uncovered)}"))
 
     # R4: swiezosc
-    for path, frozen in spec.FROZEN.items():
+    for path, frozen in getattr(spec, "FROZEN", {}).items():
         now = sha256(repo / path)
         if now != frozen:
             findings.append(("R4 świeżość", NIEROZSTRZYGNIETE, f"{path}: hash {now[:12]} != zamrozony {frozen[:12]}"))
-    if not any(f[0] == "R4 świeżość" for f in findings):
+    if getattr(spec, "FROZEN", {}) and not any(f[0] == "R4 świeżość" for f in findings):
         findings.append(("R4 świeżość", POTWIERDZONE, f"{len(spec.FROZEN)} plikow zgodnych z zamrozonymi hashami"))
 
     # R5: kompletnosc
-    for evidence_path, trigger, why in spec.COMPLETENESS:
+    for evidence_path, trigger, required, why in getattr(spec, "COMPLETENESS", []):
         text = (repo / evidence_path).read_text(encoding="utf-8")
-        if re.search(trigger, text) and not re.search(spec.COMPLETENESS_REQUIRED, scope_text, re.I):
+        if not re.search(trigger, text):
+            continue
+        if re.search(required, scope_text, re.I):
+            findings.append(("R5 kompletność", POTWIERDZONE, f"{why} - README to podaje"))
+        else:
             findings.append(("R5 kompletność", "BRAK KOMPLETNOŚCI", f"{evidence_path}: {why}; README tego nie podaje"))
 
     # R6: kotwica czasu
-    for prereg, results in spec.ANCHORS:
+    disclosure = getattr(spec, "ANCHOR_DISCLOSURE", None)
+    for prereg, results in getattr(spec, "ANCHORS", []):
         a, b = git_first_commit(repo, repo / prereg), git_first_commit(repo, repo / results)
         if a is None or b is None:
             findings.append(("R6 kotwica", NIEROZSTRZYGNIETE, f"{prereg} lub {results} poza gitem"))
         elif a[1] < b[1]:
             findings.append(("R6 kotwica", POTWIERDZONE, f"{prereg} ({a[0]}) przed {results} ({b[0]})"))
+        elif disclosure and re.search(disclosure, scope_text, re.I):
+            findings.append(("R6 kotwica", UJAWNIONE, f"{prereg} i {results} w tym samym commicie ({a[0]} / {b[0]}); "
+                                                      f"README opisuje to ograniczenie"))
         else:
             findings.append(("R6 kotwica", NIEROZSTRZYGNIETE, f"{prereg} i {results} w tym samym lub pozniejszym commicie "
                                                               f"({a[0]} / {b[0]}) - zamrozenie tylko deklarowane"))
 
     # R7: sformulowania
-    for pat, neg, why in spec.FORBIDDEN:
+    for pat, neg, why in getattr(spec, "FORBIDDEN", []):
         for m in re.finditer(pat, scope_text, re.I):
             before = scope_text[max(0, m.start() - 40): m.start()]
             if not re.search(neg, before, re.I):
                 findings.append(("R7a zakazane", SPRZECZNE, f"„{m.group()}”: {why}"))
-    for pat, advice in spec.ABSOLUTE:
+    for pat, advice in getattr(spec, "ABSOLUTE", []):
         for m in re.finditer(pat, scope_text, re.I):
             findings.append(("R7b sformułowanie", "DO ZŁAGODZENIA", f"„{m.group()}”: {advice}"))
 
@@ -156,7 +171,7 @@ def render(spec, rows, findings) -> str:
     count = {}
     for _, r in rows:
         count[r.verdict] = count.get(r.verdict, 0) + 1
-    out = [f"# Audyt twierdzeń: {spec.TITLE}", "",
+    out = [f"# Audyt twierdzeń: {spec.TITLE}", "", f"Silnik: claim_audit v{__version__} (TIMDR-AI-Core).", "",
            f"Wygenerowano: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}; reguły: `{spec.PREREG}` "
            f"(sha256 {sha256(Path(spec.REPO) / spec.PREREG)[:12]}), karty: `{Path(spec.__file__).name}` "
            f"(sha256 {sha256(spec.__file__)[:12]}), README sha256 {sha256(Path(spec.REPO) / spec.README)[:12]}.", "",

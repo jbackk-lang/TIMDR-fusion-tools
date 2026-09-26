@@ -1,6 +1,11 @@
-"""Karty twierdzeń README o MAST dla tools/claim_audit.py (reguły: CLAIM_AUDIT_PREREG.md).
+"""Karty twierdzeń README o MAST dla tools/claim_audit.py (reguły: CLAIM_AUDIT_PREREG.md + CLAIM_AUDIT_ADDENDUM_1.md).
 
 Każda karta przelicza wartość z surowych wyników (results*.csv, skrypty, pliki pre-rejestracji), nie z summary*.txt.
+
+v1.1 (po pierwszym audycie i poprawce README, opis w CLAIM_AUDIT_ADDENDUM_1.md): cytaty dopasowane do nowego tekstu README;
+M3 opiera się na loaderze próbki 2 i odtworzeniu próbki 1; M5 sprawdza ujawnienie wspólnych commitów; M7 mediany skupień
+i zależność GMM od inicjalizacji; M9 usunięta (zdanie usunięte z README); nowe M17 (niespełnione K1), M18 (kryteria post hoc
+i ich spełnienie w próbce 2), M19 (odtworzenie próbki 1); R5 z wzorcem dla każdego wyzwalacza, R6 z wzorcem ujawnienia.
 """
 from __future__ import annotations
 
@@ -75,6 +80,33 @@ def gmm_k4(d_ms: pd.Series, n_init: int = 10, seed: int = 0) -> dict:
     return {"dbic": bic1 - bic2, "means": means, "w": w[o], "ratio": means[1] / means[0]}
 
 
+def em_from(x, mu, var, w, iters=2000):
+    n = x.size
+    for _ in range(iters):
+        lp = np.log(w) + np.stack([_ll_gauss(x, mu[k], var[k]) for k in range(2)], 1)
+        m = lp.max(1, keepdims=True)
+        ll = float((m[:, 0] + np.log(np.exp(lp - m).sum(1))).sum())
+        r = np.exp(lp - m)
+        r /= r.sum(1, keepdims=True)
+        nk = r.sum(0)
+        w, mu = nk / n, (r * x[:, None]).sum(0) / nk
+        var = np.maximum((r * (x[:, None] - mu) ** 2).sum(0) / nk, 1e-6)
+    o = np.argsort(mu)
+    return ll, 10 ** mu[o]
+
+
+def repro_differences() -> int:
+    a, b = pd.read_csv(D / "results.csv"), pd.read_csv(D / "results1_repro.csv")
+    if set(a.shot) != set(b.shot) or not b.valid.all():
+        return -1
+    m = a.merge(b, on="shot", suffixes=("_o", "_r"))
+    k = sum(int((m[c + "_o"].astype(str) != m[c + "_r"].astype(str)).sum()) for c in ("flipped", "n", "is_fast", "n_bridge"))
+    for c in ("dt", "ipmax", "quench_duration_s"):
+        x, y = m[c + "_o"], m[c + "_r"]
+        k += int(((~(x.isna() & y.isna())) & ~np.isclose(x, y, rtol=1e-9, atol=1e-12)).sum())
+    return k
+
+
 def k4_ok(g) -> bool:
     return g["dbic"] > 10 and g["w"].min() >= 0.20 and g["ratio"] >= 5
 
@@ -129,8 +161,13 @@ def c_samples():
 
 
 def c_signal():
-    ok = all("magnetics/ip" in (D / s).read_text(encoding="utf-8") for s in ("run_mast_frozen.py", "run_mast_frozen2.py"))
-    return Result(POTWIERDZONE if ok else SPRZECZNE, "oba skrypty czytają magnetics/ip" if ok else "brak w skrypcie")
+    loader = 'load_arr(f"{RAW_DIR}/{sd}/magnetics/ip")' in (D / "run_mast_frozen2.py").read_text(encoding="utf-8")
+    fetch = all('"magnetics/ip"' in (D / f).read_text(encoding="utf-8") for f in ("fetch_mast_batch.py", "fetch_mast_batch2.py"))
+    k = repro_differences()
+    ok = loader and fetch and k == 0
+    return Result(POTWIERDZONE if ok else NIEROZSTRZYGNIETE,
+                  f"pobieranie magnetics/ip w obu próbkach; loader próbki 2 czyta magnetics/ip; próbka 1 odtworzona tym "
+                  f"loaderem: {k} różnic", "" if ok else "łańcuch próbki 1 nieodtworzony")
 
 
 def c_params():
@@ -161,12 +198,10 @@ def c_frozen():
         anchors.append((pre, a, b, a is not None and b is not None and a[1] < b[1]))
     if bad:
         return Result(SPRZECZNE, "hashe niezgodne", ", ".join(bad))
-    if all(x[3] for x in anchors):
-        return Result(POTWIERDZONE, "hashe zgodne, pre-rejestracje w gicie przed wynikami")
-    same = "; ".join(f"{p}: commit {a[0] if a else '-'} = wyniki {b[0] if b else '-'}" for p, a, b, ok in anchors if not ok)
-    return Result(NIEROZSTRZYGNIETE, f"{len(FROZEN)} hashy zgodnych",
-                  f"R6: pre-rejestracja i wyniki w tym samym commicie ({same}); moment zamrożenia tylko deklarowany "
-                  f"znacznikiem frozen_at_utc")
+    same = [(p, a, b) for p, a, b, ok in anchors if not ok and a and b and a[0] == b[0]]
+    ok = len(same) == len(anchors)          # README twierdzi: zamrozone hashami, ale commit wspolny z wynikami
+    return Result(POTWIERDZONE if ok else SPRZECZNE, f"{len(FROZEN)} hashy zgodnych; wspólne commity: "
+                  + ", ".join(a[0] for _, a, _ in same), "oba zdania twierdzenia zgodne z plikami i historią gita")
 
 
 def c_bimodal():
@@ -178,10 +213,19 @@ def c_bimodal():
 
 
 def c_modes():
-    g = [gmm_k4(durations_ms(s)) for s in (1, 2)]
-    ok = all(2 * 0.85 <= x["means"][0] <= 3 * 1.15 and within(50, x["means"][1], approx=True) for x in g)
-    val = "; ".join(f"próbka {i + 1}: {x['means'][0]:.2f} i {x['means'][1]:.1f} ms" for i, x in enumerate(g))
-    return Result(POTWIERDZONE if ok else SPRZECZNE, val.replace(".", ","), "tolerancja ±15%")
+    med = [(float(d[d < 4].median()), float(d[d > 15].median())) for d in (durations_ms(1), durations_ms(2))]
+    ok_med = all(within(2.6, a, approx=True) and within(61, b, approx=True) for a, b in med)
+    dep = []
+    for s in (1, 2):
+        x = np.log10(durations_ms(s).values)
+        lo, hi = x[x < np.log10(8)], x[x >= np.log10(8)]
+        _, m_split = em_from(x, np.array([lo.mean(), hi.mean()]), np.array([lo.var(), hi.var()]),
+                             np.array([lo.size, hi.size]) / x.size)
+        dep.append(bool(np.any(np.abs(m_split / gmm_k4(durations_ms(s))["means"] - 1) > 0.15)))
+    ok = ok_med and any(dep)
+    val = "; ".join(f"próbka {i + 1}: {a:.1f} i {b:.1f} ms" for i, (a, b) in enumerate(med)).replace(".", ",")
+    return Result(POTWIERDZONE if ok else SPRZECZNE, val, "mediany d < 4 ms i d > 15 ms (±15%); składowe GMM różnią się "
+                  f"zależnie od startu EM w próbkach: {[i + 1 for i, v in enumerate(dep) if v]}")
 
 
 def c_gap():
@@ -197,6 +241,41 @@ def c_repeat():
     ok = all(k4_ok(x) for x in g) and all(f <= 0.10 for f in fr)
     return Result(POTWIERDZONE if ok else SPRZECZNE, "K4 i przerwa ≤ 10% w obu próbkach" if ok else "nie w obu",
                   "próbka 1 była eksploracyjna (kryteria z niej wyprowadzone), potwierdzenie daje tylko próbka 2")
+
+
+def c_threshold_diff():
+    diffs = [100 * abs(float((d < 15).mean()) - float((d < 7.7).mean())) for d in (durations_ms(1), durations_ms(2))]
+    ok = all(round(x, 1) == 2.4 for x in diffs) and all(x <= 5 for x in diffs)
+    return Result(POTWIERDZONE if ok else SPRZECZNE, f"różnica: {diffs[0]:.1f} i {diffs[1]:.1f} pp".replace(".", ","),
+                  "„prawie ten sam” = w tolerancji K5 (≤ 5 pp)")
+
+
+def c_k1_failed():
+    d = durations_ms(1)
+    f = 100 * float(((d >= 7.5) & (d <= 30)).mean())
+    pre = (D / "PREREGISTRATION.md").read_text(encoding="utf-8")
+    ok = round(f, 1) == 11.1 and "[7,5; 30]" in pre and "<= 10%" in pre
+    return Result(POTWIERDZONE if ok else SPRZECZNE, f"próbka 1: {f:.1f}% w [7,5; 30] ms, próg z PREREGISTRATION.md 10%"
+                  .replace("1.", "1,", 1), "")
+
+
+def c_posthoc_confirmed():
+    pre2 = (D / "PREREGISTRATION_2.md").read_text(encoding="utf-8")
+    d, r = durations_ms(2), results(2)
+    k1 = float(((d >= 4) & (d <= 15)).mean())
+    k2 = len(d) / len(pd.read_csv(D / "results2.csv"))
+    k4 = k4_ok(gmm_k4(d))
+    k5 = abs(float((d < 15).mean()) - float((d < 7.7).mean()))
+    ok = "WYPROWADZONE z probki 1" in pre2 and k1 <= 0.10 and k2 >= 0.80 and k4 and k5 <= 0.05
+    return Result(POTWIERDZONE if ok else SPRZECZNE,
+                  f"próbka 2: K1' {pct(k1)}, K2 {pct(k2)}, K4 {'tak' if k4 else 'nie'}, K5 {pct(k5)}",
+                  "PREREGISTRATION_2.md: kryteria wyprowadzone z próbki 1")
+
+
+def c_repro():
+    k = repro_differences()
+    return Result(POTWIERDZONE if k == 0 else SPRZECZNE, f"results1_repro.csv vs results.csv: {k} różnic",
+                  "REPRODUCTION_SAMPLE1.md")
 
 
 def c_threshold():
@@ -256,12 +335,13 @@ CLAIMS = [
     Claim("M2", "na dwóch rozłącznych próbkach po 579 strzałów MAST", c_samples),
     Claim("M3", "(`magnetics/ip`", c_signal),
     Claim("M4", "parametry okienkowe przeliczone na czas fizyczny", c_params),
-    Claim("M5", "kryteria zamrożone przed uruchomieniem", c_frozen),
-    Claim("M6", "rozkład czasu zaniku jest dwumodalny", c_bimodal),
-    Claim("M7", "(ok. 2–3 ms i ok. 50 ms", c_modes),
-    Claim("M8", "przerwa 4–15 ms zawiera ok. 4,5% strzałów", c_gap),
-    Claim("M9", "i powtarzalny w obu próbkach", c_repeat),
-    Claim("M10", "próg 15 ms z TCABR działa tak samo jak 7,7 ms", c_threshold),
+    Claim("M5", "Kryteria zamrożono hashami przed uruchomieniem, ale pre-rejestracje trafiły do gita razem z wynikami, "
+                "więc kolejność potwierdza tylko zapisany znacznik czasu", c_frozen),
+    Claim("M6", "Rozkład czasu zaniku jest dwumodalny", c_bimodal),
+    Claim("M7", "(mediany skupień ok. 2,6 ms i ok. 61 ms; parametry mieszaniny Gaussa zależą od inicjalizacji "
+                "dopasowania)", c_modes),
+    Claim("M8", "przerwa 4–15 ms zawiera ok. 4,5% strzałów w obu próbkach", c_gap),
+    Claim("M10", "próg 15 ms z TCABR daje prawie ten sam podział co 7,7 ms (różnica 2,4 pp)", c_threshold_diff),
     Claim("M11", "To opis struktury rozkładu, nie trafność klasyfikacji", c_scope),
     Claim("M12", "dla MAST nie ma dostępnych etykiet dysrupcji (`level2/defuse`: AccessDenied)", c_labels),
     Claim("M13", "szybki tryb (ok. 65% strzałów)", c_fast),
@@ -269,13 +349,20 @@ CLAIMS = [
     Claim("M15", "pokazuje powtarzalną dwumodalność czasu zaniku, nie skuteczność klasyfikacji na MAST", c_repeat),
     Claim("M16", "`phasespace_funnel_ratio()` nie był na MAST testowany (Vloop z rekonstrukcji EFIT ma zbyt rzadkie "
                  "próbkowanie, 5 ms, z lukami)", c_limits_phasespace),
+    Claim("M17", "Pierwsza pre-rejestracja (próbka 1) **nie przeszła** kryterium K1 (11,1% strzałów w oknie 7,5–30 ms "
+                 "przy progu 10%)", c_k1_failed),
+    Claim("M18", "Kryteria testu potwierdzającego wyprowadzono post hoc z próbki 1 i sprawdzono na rozłącznej próbce 2 — "
+                 "tam wszystkie są spełnione", c_posthoc_confirmed),
+    Claim("M19", "odtworzenie próbki 1 z surowych danych", c_repro),
 ]
 
 COMPLETENESS = [
-    ("data/mast_cross_device/summary.txt", r"NIESPELNIONE", "pre-rejestrowane kryterium K1 w próbce 1 niespełnione"),
-    ("data/mast_cross_device/PREREGISTRATION_2.md", r"WYPROWADZONE", "kryteria K1', K4, K5 wyprowadzone z próbki 1 (post hoc)"),
+    ("data/mast_cross_device/summary.txt", r"NIESPELNIONE", r"nie\W+przesz\w*\W+kryterium K1|niespełn",
+     "pre-rejestrowane kryterium K1 w próbce 1 niespełnione"),
+    ("data/mast_cross_device/PREREGISTRATION_2.md", r"WYPROWADZONE", r"post hoc|wyprowadz",
+     "kryteria K1', K4, K5 wyprowadzone z próbki 1 (post hoc)"),
 ]
-COMPLETENESS_REQUIRED = r"niespełn|nie spełni|post hoc|eksplorac|wyprowadz"
+ANCHOR_DISCLOSURE = r"trafiły do gita razem z wynikami"
 ANCHORS = [("data/mast_cross_device/PREREGISTRATION.md", "data/mast_cross_device/results.csv"),
            ("data/mast_cross_device/PREREGISTRATION_2.md", "data/mast_cross_device/results2.csv")]
 FORBIDDEN = [(r"szybki\w*\s+(tryb|zanik\w*|quench\w*)[^.]{0,40}?\b(to|są|oznacza)\b[^.]{0,20}?(dysrupc|zakłóce)\w*",
