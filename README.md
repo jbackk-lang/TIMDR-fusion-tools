@@ -1,5 +1,10 @@
 # fusion-tools
 
+<!-- TIMDR HUB LINKS -->
+> **TIMDR — nawigacja:** [Knowledge Hub — dokumentacja i wyszukiwarka](https://jbackk-lang.github.io/TIMDR-AI-Knowledge-Base/) · [Panel badawczy i katalog repozytoriów](https://jbackk-lang.github.io/) · [GIA-TIMDR — źródła](https://github.com/jbackk-lang/GIA-TIMDR) · [Research AI — kod i uruchomienie lokalne](https://github.com/jbackk-lang/TIMDR-AI-Knowledge-Base). Publiczna wyszukiwarka Huba jest tekstowa; wyszukiwanie semantyczne działa lokalnie.
+<!-- /TIMDR HUB LINKS -->
+
+
 **Klasyfikator zakłóceń plazmy (TCABR)** zbudowany i zwalidowany na
 realnych danych, plus ogólny toolkit do analizy sygnałów z diagnostyki
 plazmy (W7-X, JET, DIII-D, EAST) oparty na TIMDR (redukcja informacji),
